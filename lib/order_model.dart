@@ -21,6 +21,7 @@ class OrderData {
   int helpers;
   String phoneNumber;
   String confirmationMethod;
+  String estimatedPrice;
 
   OrderData({
     this.category = '',
@@ -43,5 +44,6 @@ class OrderData {
     this.helpers = 0,
     this.phoneNumber = '',
     this.confirmationMethod = '',
+    this.estimatedPrice = '',
   });
 }

@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -9,6 +8,7 @@ import 'dart:convert';
 import 'app_language.dart';
 import 'order_model.dart';
 import 'send_order_screen.dart';
+import 'services/routing_service.dart';
 
 TextStyle _pop({double? size, FontWeight? weight, Color? color, double? height, double? letterSpacing}) {
   return GoogleFonts.poppins(fontSize: size, fontWeight: weight, color: color, height: height, letterSpacing: letterSpacing);
@@ -17,7 +17,8 @@ TextStyle _pop({double? size, FontWeight? weight, Color? color, double? height, 
 class RouteTimeScreen extends StatefulWidget {
   final OrderData orderData;
   final VoidCallback onBack;
-  const RouteTimeScreen({super.key, required this.orderData, required this.onBack});
+  final void Function(OrderData data)? onMissionConfirmed;
+  const RouteTimeScreen({super.key, required this.orderData, required this.onBack, this.onMissionConfirmed});
 
   @override
   State<RouteTimeScreen> createState() => _RouteTimeScreenState();
@@ -37,6 +38,9 @@ class _RouteTimeScreenState extends State<RouteTimeScreen> {
   bool _selectingPickup = true;
   String _searchQuery = '';
 
+  RouteResult? _routeResult;
+  bool _isCalculatingRoute = false;
+
   String get _lang => appLanguage.lang;
   bool get _isArabic => _lang == 'AR';
   bool get _isRtl => _isArabic;
@@ -48,8 +52,12 @@ class _RouteTimeScreenState extends State<RouteTimeScreen> {
   }
 
   String? get _distance {
+    if (_routeResult != null) return _routeResult!.formattedDistance;
     if (_pickupCoords == null || _deliveryCoords == null) return null;
-    final d = _calcDistance(_pickupCoords!['lat']!, _pickupCoords!['lng']!, _deliveryCoords!['lat']!, _deliveryCoords!['lng']!);
+    final d = RoutingService.haversineDistance(
+      LatLng(_pickupCoords!['lat']!, _pickupCoords!['lng']!),
+      LatLng(_deliveryCoords!['lat']!, _deliveryCoords!['lng']!),
+    );
     return '${d.toStringAsFixed(2)} km';
   }
 
@@ -73,6 +81,9 @@ class _RouteTimeScreenState extends State<RouteTimeScreen> {
         }
       }
     }
+    if (_pickupCoords != null && _deliveryCoords != null) {
+      _calculateRoute();
+    }
   }
 
   @override
@@ -83,17 +94,38 @@ class _RouteTimeScreenState extends State<RouteTimeScreen> {
 
   void _onLangChanged() { setState(() {}); }
 
-  double _calcDistance(double lat1, double lon1, double lat2, double lon2) {
-    const R = 6371.0;
-    final dLat = (lat2 - lat1) * pi / 180;
-    final dLon = (lon2 - lon1) * pi / 180;
-    final a = sin(dLat / 2) * sin(dLat / 2) + cos(lat1 * pi / 180) * cos(lat2 * pi / 180) * sin(dLon / 2) * sin(dLon / 2);
-    return R * 2 * atan2(sqrt(a), sqrt(1 - a));
+  Future<void> _calculateRoute() async {
+    if (_pickupCoords == null || _deliveryCoords == null) return;
+    setState(() {
+      _isCalculatingRoute = true;
+    });
+
+    final start = LatLng(_pickupCoords!['lat']!, _pickupCoords!['lng']!);
+    final end = LatLng(_deliveryCoords!['lat']!, _deliveryCoords!['lng']!);
+
+    final result = await RoutingService.getRoute(start: start, end: end);
+    if (!mounted) return;
+
+    setState(() {
+      _routeResult = result;
+      _isCalculatingRoute = false;
+    });
+    widget.orderData.distance = result.formattedDistance;
   }
 
   void _openMapModal(bool isPickup) {
     _selectingPickup = isPickup;
     _searchQuery = '';
+    if (isPickup && _pickupCoords != null) {
+      _currentMarker = LatLng(_pickupCoords!['lat']!, _pickupCoords!['lng']!);
+      _currentAddress = _pickup;
+    } else if (!isPickup && _deliveryCoords != null) {
+      _currentMarker = LatLng(_deliveryCoords!['lat']!, _deliveryCoords!['lng']!);
+      _currentAddress = _delivery;
+    } else {
+      _currentMarker = null;
+      _currentAddress = '';
+    }
     setState(() {});
     showModalBottomSheet(
       context: context,
@@ -158,6 +190,7 @@ class _RouteTimeScreenState extends State<RouteTimeScreen> {
         builder: (_) => SendOrderScreen(
           orderData: widget.orderData,
           onBack: () => Navigator.pop(context),
+          onMissionConfirmed: widget.onMissionConfirmed,
         ),
       ),
     );
@@ -312,17 +345,96 @@ class _RouteTimeScreenState extends State<RouteTimeScreen> {
         _buildPointRow(true),
         const SizedBox(height: 16),
         _buildPointRow(false),
-        if (_distance != null) ...[
+        if (_isCalculatingRoute) ...[
           const SizedBox(height: 16),
-          Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5A524),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text('${_t('Distance', 'المسافة', 'Distance')}: $_distance',
-                style: _pop(size: 13, weight: FontWeight.w600, color: Colors.white)),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF9E6),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFF5A524).withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(
+                  width: 16, height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFF5A524)),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  _t('Calculating road route...', 'جاري حساب مسار الطريق...', 'Calcul de l\'itinéraire...'),
+                  style: _pop(size: 13, weight: FontWeight.w600, color: const Color(0xFFB47209)),
+                ),
+              ],
+            ),
+          ),
+        ] else if (_distance != null) ...[
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF7E6),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFF5A524).withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF5A524),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.alt_route, color: Colors.white, size: 18),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${_t('Distance', 'المسافة', 'Distance')}: $_distance',
+                              style: _pop(size: 14, weight: FontWeight.w700, color: const Color(0xFF111111)),
+                            ),
+                            if (_routeResult?.durationMinutes != null)
+                              Text(
+                                '${_t('Est. time', 'الوقت المقدر', 'Temps estimé')}: ${_routeResult!.formattedDuration(t: _t)}',
+                                style: _pop(size: 12, weight: FontWeight.w500, color: const Color(0xFF777777)),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (_routeResult != null && _routeResult!.points.isNotEmpty)
+                  GestureDetector(
+                    onTap: _openRoutePreviewModal,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF5A524),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.map, size: 14, color: Colors.white),
+                          const SizedBox(width: 4),
+                          Text(
+                            _t('Map', 'الخريطة', 'Carte'),
+                            style: _pop(size: 11, weight: FontWeight.w700, color: Colors.white),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         ],
@@ -496,11 +608,214 @@ class _RouteTimeScreenState extends State<RouteTimeScreen> {
     );
   }
 
+  // ═══════════════ ROUTE PREVIEW MODAL ═══════════════
+
+  void _openRoutePreviewModal() {
+    if (_pickupCoords == null || _deliveryCoords == null) return;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _buildRoutePreviewModal(),
+    );
+  }
+
+  Widget _buildRoutePreviewModal() {
+    final pLat = _pickupCoords!['lat']!;
+    final pLng = _pickupCoords!['lng']!;
+    final dLat = _deliveryCoords!['lat']!;
+    final dLng = _deliveryCoords!['lng']!;
+    final pPoint = LatLng(pLat, pLng);
+    final dPoint = LatLng(dLat, dLng);
+
+    final routePoints = (_routeResult != null && _routeResult!.points.isNotEmpty)
+        ? _routeResult!.points
+        : [pPoint, dPoint];
+
+    final topPad = MediaQuery.of(context).viewPadding.top;
+
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.9,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          Container(
+            padding: EdgeInsets.fromLTRB(16, topPad > 0 ? 12 : 16, 16, 12),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              border: Border(bottom: BorderSide(color: Color(0xFFF0F0F0), width: 1)),
+            ),
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F5F5),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.close, size: 20, color: Color(0xFF444444)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _t('Trip Route', 'مسار الرحلة', 'Itinéraire'),
+                        style: _pop(size: 16, weight: FontWeight.w700, color: const Color(0xFF111111)),
+                      ),
+                      if (_distance != null)
+                        Text(
+                          '$_distance${_routeResult?.durationMinutes != null ? ' • ${_routeResult!.formattedDuration(t: _t)}' : ''}',
+                          style: _pop(size: 12, weight: FontWeight.w600, color: const Color(0xFFF5A524)),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: FlutterMap(
+              options: MapOptions(
+                initialCameraFit: CameraFit.bounds(
+                  bounds: LatLngBounds.fromPoints(routePoints),
+                  padding: const EdgeInsets.all(48),
+                ),
+              ),
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.orizzonte.app',
+                ),
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: routePoints,
+                      strokeWidth: 5.0,
+                      color: const Color(0xFFF5A524),
+                    ),
+                  ],
+                ),
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: pPoint,
+                      width: 40,
+                      height: 40,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF43A047),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4, offset: const Offset(0, 2)),
+                          ],
+                        ),
+                        child: const Icon(Icons.location_on, color: Colors.white, size: 24),
+                      ),
+                    ),
+                    Marker(
+                      point: dPoint,
+                      width: 40,
+                      height: 40,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE53935),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4, offset: const Offset(0, 2)),
+                          ],
+                        ),
+                        child: const Icon(Icons.flag, color: Colors.white, size: 22),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              border: Border(top: BorderSide(color: Color(0xFFF0F0F0), width: 1)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.trip_origin, size: 16, color: Color(0xFF43A047)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _pickup,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: _pop(size: 13, weight: FontWeight.w600, color: const Color(0xFF222222)),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(Icons.location_on, size: 16, color: Color(0xFFE53935)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _delivery,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: _pop(size: 13, weight: FontWeight.w600, color: const Color(0xFF222222)),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5A524),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Text(
+                      _t('Done', 'تم', 'Terminé'),
+                      textAlign: TextAlign.center,
+                      style: _pop(size: 15, weight: FontWeight.w700, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ═══════════════ MAP MODAL ═══════════════
 
   Widget _buildMapModal() {
     return StatefulBuilder(
       builder: (context, setModalState) {
+        final otherCoords = _selectingPickup ? _deliveryCoords : _pickupCoords;
+        final initialCenterPoint = _currentMarker ??
+            (otherCoords != null
+                ? LatLng(otherCoords['lat']!, otherCoords['lng']!)
+                : const LatLng(28.0339, 1.6596));
+
         return Container(
           height: MediaQuery.of(context).size.height,
           color: Colors.white,
@@ -511,8 +826,8 @@ class _RouteTimeScreenState extends State<RouteTimeScreen> {
                 child: FlutterMap(
                   mapController: _mapController,
                   options: MapOptions(
-                    initialCenter: const LatLng(28.0339, 1.6596),
-                    initialZoom: 5,
+                    initialCenter: initialCenterPoint,
+                    initialZoom: _currentMarker != null ? 14 : (otherCoords != null ? 12 : 5),
                     onTap: (tapPos, latLng) async {
                       await _handleMapTap(latLng, setModalState);
                     },
@@ -522,14 +837,39 @@ class _RouteTimeScreenState extends State<RouteTimeScreen> {
                       urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'com.orizzonte.app',
                     ),
-                    if (_currentMarker != null)
-                      MarkerLayer(markers: [
+                    if (_routeResult != null && _routeResult!.points.isNotEmpty)
+                      PolylineLayer(
+                        polylines: [
+                          Polyline(
+                            points: _routeResult!.points,
+                            strokeWidth: 4.0,
+                            color: const Color(0xFFF5A524),
+                          ),
+                        ],
+                      ),
+                    MarkerLayer(markers: [
+                      if (_currentMarker != null)
                         Marker(
                           point: _currentMarker!,
-                          width: 40, height: 40,
-                          child: Icon(Icons.location_pin, color: Color(0xFFF5A524), size: 40),
+                          width: 40,
+                          height: 40,
+                          child: const Icon(Icons.location_pin, color: Color(0xFFF5A524), size: 40),
                         ),
-                      ]),
+                      if (_selectingPickup && _deliveryCoords != null)
+                        Marker(
+                          point: LatLng(_deliveryCoords!['lat']!, _deliveryCoords!['lng']!),
+                          width: 34,
+                          height: 34,
+                          child: const Icon(Icons.flag, color: Color(0xFFE53935), size: 30),
+                        ),
+                      if (!_selectingPickup && _pickupCoords != null)
+                        Marker(
+                          point: LatLng(_pickupCoords!['lat']!, _pickupCoords!['lng']!),
+                          width: 34,
+                          height: 34,
+                          child: const Icon(Icons.location_on, color: Color(0xFF43A047), size: 30),
+                        ),
+                    ]),
                   ],
                 ),
               ),
@@ -612,8 +952,12 @@ class _RouteTimeScreenState extends State<RouteTimeScreen> {
             _delivery = _currentAddress;
             _deliveryCoords = {'lat': _currentMarker!.latitude, 'lng': _currentMarker!.longitude};
           }
+          _routeResult = null;
           setState(() {});
           Navigator.pop(context);
+          if (_pickupCoords != null && _deliveryCoords != null) {
+            _calculateRoute();
+          }
         },
         child: Container(
           width: double.infinity,

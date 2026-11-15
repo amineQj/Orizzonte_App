@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app_language.dart';
 import 'order_flow.dart';
+import 'order_model.dart';
 import 'route_time_screen.dart';
 
 TextStyle _poppins({double? size, FontWeight? weight, Color? color, double? height, double? letterSpacing}) {
@@ -21,8 +22,32 @@ const _categories = <Map<String, String>>[
   {'en_name': 'Appliances', 'en_desc': 'Household and commercial appliances', 'ar_name': 'الأجهزة المنزلية', 'ar_desc': 'الأجهزة المنزلية والتجارية', 'fr_name': 'Appareils électroménagers', 'fr_desc': 'Appareils ménagers et commerciaux'},
 ];
 
+const _categoryIds = [
+  'house_moving', 'commercial', 'heavy_equipment', 'chemicals',
+  'towing', 'construction', 'water', 'appliances',
+];
+
+/// Returns the localized display name for a category id.
+///
+/// Reuses the category catalogue already defined above so the customer mission
+/// views show the same names as the category picker.
+String categoryLabel(String id, String lang) {
+  final idx = _categoryIds.indexOf(id);
+  if (idx < 0 || idx >= _categories.length) return id;
+  final c = _categories[idx];
+  if (lang == 'AR') return c['ar_name'] ?? c['en_name'] ?? id;
+  if (lang == 'FR') return c['fr_name'] ?? c['en_name'] ?? id;
+  return c['en_name'] ?? id;
+}
+
 class CustomerScreen extends StatefulWidget {
-  const CustomerScreen({super.key});
+  const CustomerScreen({super.key, this.onMissionConfirmed});
+
+  /// Called with the confirmed [OrderData] once a mission is created.
+  ///
+  /// When provided, the mission is saved and the flow returns to the caller
+  /// (the Customer shell). When null, the flow behaves as before.
+  final void Function(OrderData data)? onMissionConfirmed;
 
   @override
   State<CustomerScreen> createState() => _CustomerScreenState();
@@ -232,61 +257,33 @@ class _CustomerScreenState extends State<CustomerScreen> {
             style: _poppins(size: 13, weight: FontWeight.w400, color: const Color(0xFF999999), height: 1.6)),
           const SizedBox(height: 24),
           ...List.generate(_categories.length, (i) => _buildCategoryCard(i)),
-          const SizedBox(height: 28),
-          AnimatedOpacity(
-            opacity: _selected != null ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 300),
-            child: AnimatedSlide(
-              offset: _selected != null ? Offset.zero : const Offset(0, 0.1),
-              duration: const Duration(milliseconds: 300),
-              child: GestureDetector(
-                onTap: _selected != null
-                    ? () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => OrderFlow(
-                              categoryIndex: _selected!,
-                              onBack: () => Navigator.pop(context),
-                              onNext: (data) {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => RouteTimeScreen(
-                                      orderData: data,
-                                      onBack: () => Navigator.pop(context),
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        );
-                      }
-                    : null,
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 17),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF5A524),
-                    borderRadius: BorderRadius.circular(22),
-                    boxShadow: [BoxShadow(color: const Color(0xFFF5A524).withValues(alpha: 0.38), blurRadius: 28, offset: const Offset(0, 8))],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(_isArabic ? 'متابعة' : _lang == 'FR' ? 'Continuer' : 'Continue',
-                        style: _poppins(size: 15, weight: FontWeight.w700, color: Colors.white, letterSpacing: -0.01)),
-                      const SizedBox(width: 6),
-                      Icon(Icons.chevron_right, size: 18, color: Colors.white,
-                        textDirection: TextDirection.ltr),
-                    ],
-                  ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+
+  void _selectCategory(int i) {
+    setState(() => _selected = i);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => OrderFlow(
+          categoryIndex: i,
+          onBack: () => Navigator.pop(context),
+          onNext: (data) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => RouteTimeScreen(
+                  orderData: data,
+                  onBack: () => Navigator.pop(context),
+                  onMissionConfirmed: widget.onMissionConfirmed,
                 ),
               ),
-            ),
-          ),
-        ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -297,7 +294,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: GestureDetector(
-        onTap: () => setState(() => _selected = active ? null : i),
+        onTap: () => _selectCategory(i),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 250),
           padding: const EdgeInsets.all(16),

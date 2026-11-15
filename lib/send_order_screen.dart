@@ -12,7 +12,8 @@ TextStyle _pop({double? size, FontWeight? weight, Color? color, double? height, 
 class SendOrderScreen extends StatefulWidget {
   final OrderData orderData;
   final VoidCallback onBack;
-  const SendOrderScreen({super.key, required this.orderData, required this.onBack});
+  final void Function(OrderData data)? onMissionConfirmed;
+  const SendOrderScreen({super.key, required this.orderData, required this.onBack, this.onMissionConfirmed});
 
   @override
   State<SendOrderScreen> createState() => _SendOrderScreenState();
@@ -118,7 +119,12 @@ class _SendOrderScreenState extends State<SendOrderScreen> {
           onRouteEdit: () { Navigator.pop(context); },
           onVehicleEdit: () { Navigator.popUntil(context, (route) => route.isFirst); },
           onTimeEdit: () { Navigator.pop(context); },
-          onConfirmDone: () { Navigator.popUntil(context, (route) => route.isFirst); },
+          onConfirmDone: () {
+            widget.onMissionConfirmed?.call(widget.orderData);
+            Navigator.of(context).popUntil(
+              (route) => route.settings.name == '/customer' || route.isFirst,
+            );
+          },
         ),
       ),
     );

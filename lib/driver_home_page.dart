@@ -2,10 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app_language.dart';
+import 'services/driver_mission_store.dart';
 import 'verification_flow_screen.dart';
 
-TextStyle _pop({double? size, FontWeight? weight, Color? color, double? height, double? letterSpacing}) {
-  return GoogleFonts.poppins(fontSize: size, fontWeight: weight, color: color, height: height, letterSpacing: letterSpacing);
+TextStyle _pop({
+  double? size,
+  FontWeight? weight,
+  Color? color,
+  double? height,
+  double? letterSpacing,
+}) {
+  return GoogleFonts.poppins(
+    fontSize: size,
+    fontWeight: weight,
+    color: color,
+    height: height,
+    letterSpacing: letterSpacing,
+  );
 }
 
 String _truckImage(String truckType, String truckSize) {
@@ -53,22 +66,29 @@ class _DriverHomePageState extends State<DriverHomePage> {
   void initState() {
     super.initState();
     appLanguage.addListener(_onLangChanged);
+    DriverMissionStore.instance.addListener(_onStoreChanged);
   }
 
   @override
   void dispose() {
     appLanguage.removeListener(_onLangChanged);
+    DriverMissionStore.instance.removeListener(_onStoreChanged);
     super.dispose();
   }
 
-  void _onLangChanged() { setState(() {}); }
+  void _onLangChanged() {
+    setState(() {});
+  }
 
-  final List<Map<String, String>> _available = const [
-    {'id': 'M-001', 'client': 'Ahmed Benali', 'from': 'Algiers', 'to': 'Oran', 'date': '25 Jul 09:00', 'truck': 'Camion', 'size': 'Large', 'dist': '420 km', 'price': '15,000 DZD'},
-    {'id': 'M-002', 'client': 'Sara Khelifi', 'from': 'Constantine', 'to': 'Annaba', 'date': '26 Jul 14:30', 'truck': 'Fourgon', 'size': 'Medium', 'dist': '180 km', 'price': '8,500 DZD'},
-    {'id': 'M-003', 'client': 'Omar Saidi', 'from': 'Blida', 'to': 'Setif', 'date': '27 Jul 08:00', 'truck': 'Harbina', 'size': 'Short', 'dist': '300 km', 'price': '12,000 DZD'},
-    {'id': 'M-004', 'client': 'Fatima Zeroual', 'from': 'Tlemcen', 'to': 'Bejaia', 'date': '28 Jul 10:00', 'truck': 'Camion', 'size': 'Small', 'dist': '520 km', 'price': '18,000 DZD'},
-  ];
+  void _onStoreChanged() {
+    setState(() {});
+  }
+
+  List<Map<String, String>> get _available => DriverMissionStore
+      .instance
+      .availableMissions
+      .map((m) => m.toMap())
+      .toList();
 
   @override
   Widget build(BuildContext context) {
@@ -91,22 +111,47 @@ class _DriverHomePageState extends State<DriverHomePage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(_t('Available Missions', 'المهام المتاحة', 'Missions disponibles'),
-                style: _pop(size: 16, weight: FontWeight.w700, color: const Color(0xFF111111))),
+              Text(
+                _t(
+                  'Available Missions',
+                  'المهام المتاحة',
+                  'Missions disponibles',
+                ),
+                style: _pop(
+                  size: 16,
+                  weight: FontWeight.w700,
+                  color: const Color(0xFF111111),
+                ),
+              ),
               Row(
                 children: [
-                  Text('${_available.length}', style: _pop(size: 14, weight: FontWeight.w700, color: const Color(0xFFF5A524))),
+                  Text(
+                    '${_available.length}',
+                    style: _pop(
+                      size: 14,
+                      weight: FontWeight.w700,
+                      color: const Color(0xFFF5A524),
+                    ),
+                  ),
                   const SizedBox(width: 10),
                   GestureDetector(
                     onTap: () => _showFilterPage(),
                     child: Container(
-                      width: 32, height: 32,
+                      width: 32,
+                      height: 32,
                       decoration: BoxDecoration(
                         color: const Color(0xFFF5F5F5),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
+                        border: Border.all(
+                          color: const Color(0xFFE0E0E0),
+                          width: 1,
+                        ),
                       ),
-                      child: const Icon(Icons.tune, size: 16, color: Color(0xFF999999)),
+                      child: const Icon(
+                        Icons.tune,
+                        size: 16,
+                        color: Color(0xFF999999),
+                      ),
                     ),
                   ),
                 ],
@@ -114,10 +159,12 @@ class _DriverHomePageState extends State<DriverHomePage> {
             ],
           ),
           const SizedBox(height: 12),
-          ..._available.map((m) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _buildProfessionalCard(m),
-          )),
+          ..._available.map(
+            (m) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _buildProfessionalCard(m),
+            ),
+          ),
         ],
       ),
     );
@@ -128,38 +175,79 @@ class _DriverHomePageState extends State<DriverHomePage> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFFFFF3E0), Color(0xFFFFE0B2)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFFF3E0), Color(0xFFFFE0B2)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFF5A524).withValues(alpha: 0.3), width: 1),
+        border: Border.all(
+          color: const Color(0xFFF5A524).withValues(alpha: 0.3),
+          width: 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Container(
-              width: 40, height: 40,
-              decoration: BoxDecoration(color: const Color(0xFFF5A524), borderRadius: BorderRadius.circular(12)),
-              child: const Icon(Icons.verified_user, color: Colors.white, size: 22),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(_t('Verify your account', 'تحقق من حسابك', 'Vérifiez votre compte'),
-                    style: _pop(size: 15, weight: FontWeight.w700, color: const Color(0xFF111111))),
-                  const SizedBox(height: 2),
-                  Text(_t('Complete verification to start accepting missions.', 'أكمل التحقق لتتمكن من قبول المهام.', 'Complétez la vérification pour accepter des missions.'),
-                    style: _pop(size: 12, color: const Color(0xFF666666))),
-                ],
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5A524),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.verified_user,
+                  color: Colors.white,
+                  size: 22,
+                ),
               ),
-            ),
-          ]),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _t(
+                        'Verify your account',
+                        'تحقق من حسابك',
+                        'Vérifiez votre compte',
+                      ),
+                      style: _pop(
+                        size: 15,
+                        weight: FontWeight.w700,
+                        color: const Color(0xFF111111),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _t(
+                        'Complete verification to start accepting missions.',
+                        'أكمل التحقق لتتمكن من قبول المهام.',
+                        'Complétez la vérification pour accepter des missions.',
+                      ),
+                      style: _pop(size: 12, color: const Color(0xFF666666)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 14),
           GestureDetector(
             onTap: () async {
-              final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const VerificationFlowScreen()));
-              if (result == true) setState(() { _verified = 1; });
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const VerificationFlowScreen(),
+                ),
+              );
+              if (result == true)
+                setState(() {
+                  _verified = 1;
+                });
             },
             child: Container(
               width: double.infinity,
@@ -167,11 +255,23 @@ class _DriverHomePageState extends State<DriverHomePage> {
               decoration: BoxDecoration(
                 color: const Color(0xFFF5A524),
                 borderRadius: BorderRadius.circular(14),
-                boxShadow: [BoxShadow(color: const Color(0xFFF5A524).withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 3))],
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFF5A524).withValues(alpha: 0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
               ),
-              child: Text(_t('Verify Account', 'تحقق من الحساب', 'Vérifier le compte'),
+              child: Text(
+                _t('Verify Account', 'تحقق من الحساب', 'Vérifier le compte'),
                 textAlign: TextAlign.center,
-                style: _pop(size: 14, weight: FontWeight.w700, color: Colors.white)),
+                style: _pop(
+                  size: 14,
+                  weight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
             ),
           ),
         ],
@@ -184,27 +284,58 @@ class _DriverHomePageState extends State<DriverHomePage> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFFE3F2FD), Color(0xFFBBDEFB)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+        gradient: const LinearGradient(
+          colors: [Color(0xFFE3F2FD), Color(0xFFBBDEFB)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF2196F3).withValues(alpha: 0.3), width: 1),
+        border: Border.all(
+          color: const Color(0xFF2196F3).withValues(alpha: 0.3),
+          width: 1,
+        ),
       ),
       child: Row(
         children: [
           Container(
-            width: 40, height: 40,
-            decoration: BoxDecoration(color: const Color(0xFF2196F3), borderRadius: BorderRadius.circular(12)),
-            child: const Icon(Icons.hourglass_top, color: Colors.white, size: 22),
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: const Color(0xFF2196F3),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.hourglass_top,
+              color: Colors.white,
+              size: 22,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(_t('Documents under review', 'المستندات قيد المراجعة', 'Documents en cours de révision'),
-                  style: _pop(size: 15, weight: FontWeight.w700, color: const Color(0xFF111111))),
+                Text(
+                  _t(
+                    'Documents under review',
+                    'المستندات قيد المراجعة',
+                    'Documents en cours de révision',
+                  ),
+                  style: _pop(
+                    size: 15,
+                    weight: FontWeight.w700,
+                    color: const Color(0xFF111111),
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(_t('Your submitted documents are being reviewed. This usually takes 24-48 hours.', 'مستنداتك المرسلة قيد المراجعة. يستغرق هذا عادة 24-48 ساعة.', 'Vos documents sont en cours de révision. 24-48 heures.'),
-                  style: _pop(size: 12, color: const Color(0xFF666666))),
+                Text(
+                  _t(
+                    'Your submitted documents are being reviewed. This usually takes 24-48 hours.',
+                    'مستنداتك المرسلة قيد المراجعة. يستغرق هذا عادة 24-48 ساعة.',
+                    'Vos documents sont en cours de révision. 24-48 heures.',
+                  ),
+                  style: _pop(size: 12, color: const Color(0xFF666666)),
+                ),
               ],
             ),
           ),
@@ -214,31 +345,71 @@ class _DriverHomePageState extends State<DriverHomePage> {
   }
 
   Widget _buildQuickStats() {
+    final store = DriverMissionStore.instance;
     return Row(
       children: [
-        Expanded(child: _buildStatCard(_t('Available', 'متاح', 'Disponibles'), '${_available.length}', Icons.assignment_outlined, const Color(0xFFF5A524))),
+        Expanded(
+          child: _buildStatCard(
+            _t('Available', 'متاح', 'Disponibles'),
+            '${store.availableMissions.length}',
+            Icons.assignment_outlined,
+            const Color(0xFFF5A524),
+          ),
+        ),
         const SizedBox(width: 12),
-        Expanded(child: _buildStatCard(_t('Accepted', 'مقبول', 'Acceptées'), '1', Icons.check_circle_outline, const Color(0xFF2196F3))),
+        Expanded(
+          child: _buildStatCard(
+            _t('In Progress', 'قيد التنفيذ', 'En cours'),
+            '${store.inProgressMissions.length}',
+            Icons.local_shipping_outlined,
+            const Color(0xFF2196F3),
+          ),
+        ),
         const SizedBox(width: 12),
-        Expanded(child: _buildStatCard(_t('Completed', 'مكتمل', 'Terminées'), '3', Icons.verified_outlined, const Color(0xFF4CAF50))),
+        Expanded(
+          child: _buildStatCard(
+            _t('Completed', 'مكتمل', 'Terminées'),
+            '${store.completedMissions.length}',
+            Icons.verified_outlined,
+            const Color(0xFF4CAF50),
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFEFEFEF), width: 1),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12, offset: const Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         children: [
           Icon(icon, size: 24, color: color),
           const SizedBox(height: 8),
-          Text(value, style: _pop(size: 24, weight: FontWeight.w800, color: const Color(0xFF111111))),
+          Text(
+            value,
+            style: _pop(
+              size: 24,
+              weight: FontWeight.w800,
+              color: const Color(0xFF111111),
+            ),
+          ),
           const SizedBox(height: 4),
           Text(label, style: _pop(size: 11, color: const Color(0xFF999999))),
         ],
@@ -258,8 +429,16 @@ class _DriverHomePageState extends State<DriverHomePage> {
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: const Color(0xFFEFEFEF), width: 1),
           boxShadow: [
-            BoxShadow(color: const Color(0xFFF5A524).withValues(alpha: 0.06), blurRadius: 16, offset: const Offset(0, 4)),
-            BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
+            BoxShadow(
+              color: const Color(0xFFF5A524).withValues(alpha: 0.06),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
           ],
         ),
         child: Column(
@@ -268,13 +447,20 @@ class _DriverHomePageState extends State<DriverHomePage> {
             Row(
               children: [
                 Container(
-                  width: 80, height: 52,
+                  width: 80,
+                  height: 52,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: isSvg
-                    ? Padding(padding: const EdgeInsets.all(8), child: SvgPicture.asset(img, fit: BoxFit.contain))
-                    : Padding(padding: const EdgeInsets.all(4), child: Image.asset(img, fit: BoxFit.contain)),
+                      ? Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: SvgPicture.asset(img, fit: BoxFit.contain),
+                        )
+                      : Padding(
+                          padding: const EdgeInsets.all(4),
+                          child: Image.asset(img, fit: BoxFit.contain),
+                        ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -284,26 +470,92 @@ class _DriverHomePageState extends State<DriverHomePage> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('${m['truck']} ${m['size']}', style: _pop(size: 14, weight: FontWeight.w700, color: const Color(0xFF111111))),
+                          Text(
+                            '${m['truck']} ${m['size']}',
+                            style: _pop(
+                              size: 14,
+                              weight: FontWeight.w700,
+                              color: const Color(0xFF111111),
+                            ),
+                          ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                            decoration: BoxDecoration(color: const Color(0xFFE8F5E9), borderRadius: BorderRadius.circular(6)),
-                            child: Text(_t('Available', 'متاح', 'Disponible'), style: _pop(size: 9, weight: FontWeight.w700, color: const Color(0xFF4CAF50))),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE8F5E9),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              _t('Available', 'متاح', 'Disponible'),
+                              style: _pop(
+                                size: 9,
+                                weight: FontWeight.w700,
+                                color: const Color(0xFF4CAF50),
+                              ),
+                            ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 3),
-                      Text(m['client']!, style: _pop(size: 12, color: const Color(0xFF999999))),
+                      Text(
+                        m['client']!,
+                        style: _pop(size: 12, color: const Color(0xFF999999)),
+                      ),
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Container(width: 5, height: 5, decoration: const BoxDecoration(color: Color(0xFF4CAF50), shape: BoxShape.circle)),
+                          Container(
+                            width: 5,
+                            height: 5,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF4CAF50),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
                           const SizedBox(width: 4),
-                          Expanded(child: Text(m['from']!, maxLines: 1, overflow: TextOverflow.ellipsis, style: _pop(size: 10, weight: FontWeight.w500, color: const Color(0xFF333333)))),
-                          const Padding(padding: EdgeInsets.symmetric(horizontal: 3), child: Icon(Icons.arrow_forward, size: 10, color: Color(0xFFCCCCCC))),
-                          Container(width: 5, height: 5, decoration: const BoxDecoration(color: Color(0xFFF5A524), shape: BoxShape.circle)),
+                          Expanded(
+                            child: Text(
+                              m['from']!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: _pop(
+                                size: 10,
+                                weight: FontWeight.w500,
+                                color: const Color(0xFF333333),
+                              ),
+                            ),
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 3),
+                            child: Icon(
+                              Icons.arrow_forward,
+                              size: 10,
+                              color: Color(0xFFCCCCCC),
+                            ),
+                          ),
+                          Container(
+                            width: 5,
+                            height: 5,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFF5A524),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
                           const SizedBox(width: 4),
-                          Expanded(child: Text(m['to']!, maxLines: 1, overflow: TextOverflow.ellipsis, style: _pop(size: 10, weight: FontWeight.w500, color: const Color(0xFF333333)))),
+                          Expanded(
+                            child: Text(
+                              m['to']!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: _pop(
+                                size: 10,
+                                weight: FontWeight.w500,
+                                color: const Color(0xFF333333),
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -319,24 +571,45 @@ class _DriverHomePageState extends State<DriverHomePage> {
                 const SizedBox(width: 12),
                 _metaChip(Icons.straighten, m['dist']!),
                 const Spacer(),
-                Text(m['price']!, style: _pop(size: 13, weight: FontWeight.w800, color: const Color(0xFFF5A524))),
+                Text(
+                  m['price']!,
+                  style: _pop(
+                    size: 13,
+                    weight: FontWeight.w800,
+                    color: const Color(0xFFF5A524),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 10),
             // Row 3: action button
             GestureDetector(
-              onTap: () {},
+              onTap: () {
+                DriverMissionStore.instance.acceptMission(m['id']!);
+              },
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 11),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF5A524),
                   borderRadius: BorderRadius.circular(12),
-                  boxShadow: [BoxShadow(color: const Color(0xFFF5A524).withValues(alpha: 0.25), blurRadius: 8, offset: const Offset(0, 3))],
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFF5A524).withValues(alpha: 0.25),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
                 ),
-                child: Text(_t('Accept Mission', 'قبول المهمة', 'Accepter la mission'),
+                child: Text(
+                  _t('Accept Mission', 'قبول المهمة', 'Accepter la mission'),
                   textAlign: TextAlign.center,
-                  style: _pop(size: 12, weight: FontWeight.w700, color: Colors.white)),
+                  style: _pop(
+                    size: 12,
+                    weight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ),
           ],
@@ -380,16 +653,26 @@ class _DriverHomePageState extends State<DriverHomePage> {
                 children: [
                   Center(
                     child: Container(
-                      width: 40, height: 4,
-                      decoration: BoxDecoration(color: const Color(0xFFE0E0E0), borderRadius: BorderRadius.circular(2)),
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE0E0E0),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(_t('Filters', 'الفلاتر', 'Filtres'),
-                        style: _pop(size: 20, weight: FontWeight.w700, color: const Color(0xFF111111))),
+                      Text(
+                        _t('Filters', 'الفلاتر', 'Filtres'),
+                        style: _pop(
+                          size: 20,
+                          weight: FontWeight.w700,
+                          color: const Color(0xFF111111),
+                        ),
+                      ),
                       GestureDetector(
                         onTap: () => setModalState(() {
                           vehicleType = 'All';
@@ -397,95 +680,195 @@ class _DriverHomePageState extends State<DriverHomePage> {
                           distanceRange = 'All';
                           sortBy = 'Date';
                         }),
-                        child: Text(_t('Reset', 'إعادة', 'Réinitialiser'),
-                          style: _pop(size: 13, weight: FontWeight.w600, color: const Color(0xFFF5A524))),
+                        child: Text(
+                          _t('Reset', 'إعادة', 'Réinitialiser'),
+                          style: _pop(
+                            size: 13,
+                            weight: FontWeight.w600,
+                            color: const Color(0xFFF5A524),
+                          ),
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 24),
-                  _filterSectionTitle(_t('Vehicle Type', 'نوع المركبة', 'Type de véhicule')),
+                  _filterSectionTitle(
+                    _t('Vehicle Type', 'نوع المركبة', 'Type de véhicule'),
+                  ),
                   const SizedBox(height: 10),
                   Wrap(
-                    spacing: 8, runSpacing: 8,
+                    spacing: 8,
+                    runSpacing: 8,
                     children: ['All', 'Camion', 'Fourgon', 'Harbina'].map((t) {
                       final sel = vehicleType == t;
                       return GestureDetector(
                         onTap: () => setModalState(() => vehicleType = t),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: sel ? const Color(0xFFF5A524) : const Color(0xFFF5F5F5),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: sel ? const Color(0xFFF5A524) : const Color(0xFFE0E0E0)),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
                           ),
-                          child: Text(t == 'All' ? _t('All', 'الكل', 'Toutes') : t,
-                            style: _pop(size: 12, weight: FontWeight.w600, color: sel ? Colors.white : const Color(0xFF666666))),
+                          decoration: BoxDecoration(
+                            color: sel
+                                ? const Color(0xFFF5A524)
+                                : const Color(0xFFF5F5F5),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: sel
+                                  ? const Color(0xFFF5A524)
+                                  : const Color(0xFFE0E0E0),
+                            ),
+                          ),
+                          child: Text(
+                            t == 'All' ? _t('All', 'الكل', 'Toutes') : t,
+                            style: _pop(
+                              size: 12,
+                              weight: FontWeight.w600,
+                              color: sel
+                                  ? Colors.white
+                                  : const Color(0xFF666666),
+                            ),
+                          ),
                         ),
                       );
                     }).toList(),
                   ),
                   const SizedBox(height: 24),
-                  _filterSectionTitle(_t('Price Range', 'نطاق السعر', 'Fourchette de prix')),
+                  _filterSectionTitle(
+                    _t('Price Range', 'نطاق السعر', 'Fourchette de prix'),
+                  ),
                   const SizedBox(height: 10),
                   Wrap(
-                    spacing: 8, runSpacing: 8,
-                    children: ['All', '< 10,000', '10,000 - 15,000', '15,000 - 20,000', '> 20,000'].map((p) {
-                      final sel = priceRange == p;
-                      return GestureDetector(
-                        onTap: () => setModalState(() => priceRange = p),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: sel ? const Color(0xFFF5A524) : const Color(0xFFF5F5F5),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: sel ? const Color(0xFFF5A524) : const Color(0xFFE0E0E0)),
-                          ),
-                          child: Text(p == 'All' ? _t('All', 'الكل', 'Toutes') : '$p DZD',
-                            style: _pop(size: 11, weight: FontWeight.w600, color: sel ? Colors.white : const Color(0xFF666666))),
-                        ),
-                      );
-                    }).toList(),
+                    spacing: 8,
+                    runSpacing: 8,
+                    children:
+                        [
+                          'All',
+                          '< 10,000',
+                          '10,000 - 15,000',
+                          '15,000 - 20,000',
+                          '> 20,000',
+                        ].map((p) {
+                          final sel = priceRange == p;
+                          return GestureDetector(
+                            onTap: () => setModalState(() => priceRange = p),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: sel
+                                    ? const Color(0xFFF5A524)
+                                    : const Color(0xFFF5F5F5),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: sel
+                                      ? const Color(0xFFF5A524)
+                                      : const Color(0xFFE0E0E0),
+                                ),
+                              ),
+                              child: Text(
+                                p == 'All'
+                                    ? _t('All', 'الكل', 'Toutes')
+                                    : '$p DZD',
+                                style: _pop(
+                                  size: 11,
+                                  weight: FontWeight.w600,
+                                  color: sel
+                                      ? Colors.white
+                                      : const Color(0xFF666666),
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
                   ),
                   const SizedBox(height: 24),
                   _filterSectionTitle(_t('Distance', 'المسافة', 'Distance')),
                   const SizedBox(height: 10),
                   Wrap(
-                    spacing: 8, runSpacing: 8,
-                    children: ['All', '< 200 km', '200 - 400 km', '400 - 600 km', '> 600 km'].map((d) {
-                      final sel = distanceRange == d;
-                      return GestureDetector(
-                        onTap: () => setModalState(() => distanceRange = d),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: sel ? const Color(0xFFF5A524) : const Color(0xFFF5F5F5),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: sel ? const Color(0xFFF5A524) : const Color(0xFFE0E0E0)),
-                          ),
-                          child: Text(d == 'All' ? _t('All', 'الكل', 'Toutes') : d,
-                            style: _pop(size: 11, weight: FontWeight.w600, color: sel ? Colors.white : const Color(0xFF666666))),
-                        ),
-                      );
-                    }).toList(),
+                    spacing: 8,
+                    runSpacing: 8,
+                    children:
+                        [
+                          'All',
+                          '< 200 km',
+                          '200 - 400 km',
+                          '400 - 600 km',
+                          '> 600 km',
+                        ].map((d) {
+                          final sel = distanceRange == d;
+                          return GestureDetector(
+                            onTap: () => setModalState(() => distanceRange = d),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: sel
+                                    ? const Color(0xFFF5A524)
+                                    : const Color(0xFFF5F5F5),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: sel
+                                      ? const Color(0xFFF5A524)
+                                      : const Color(0xFFE0E0E0),
+                                ),
+                              ),
+                              child: Text(
+                                d == 'All' ? _t('All', 'الكل', 'Toutes') : d,
+                                style: _pop(
+                                  size: 11,
+                                  weight: FontWeight.w600,
+                                  color: sel
+                                      ? Colors.white
+                                      : const Color(0xFF666666),
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
                   ),
                   const SizedBox(height: 24),
                   _filterSectionTitle(_t('Sort By', 'ترتيب حسب', 'Trier par')),
                   const SizedBox(height: 10),
                   Wrap(
-                    spacing: 8, runSpacing: 8,
-                    children: ['Date', 'Price ↑', 'Price ↓', 'Distance'].map((s) {
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: ['Date', 'Price ↑', 'Price ↓', 'Distance'].map((
+                      s,
+                    ) {
                       final sel = sortBy == s;
                       return GestureDetector(
                         onTap: () => setModalState(() => sortBy = s),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: sel ? const Color(0xFFF5A524) : const Color(0xFFF5F5F5),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: sel ? const Color(0xFFF5A524) : const Color(0xFFE0E0E0)),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
                           ),
-                          child: Text(s,
-                            style: _pop(size: 11, weight: FontWeight.w600, color: sel ? Colors.white : const Color(0xFF666666))),
+                          decoration: BoxDecoration(
+                            color: sel
+                                ? const Color(0xFFF5A524)
+                                : const Color(0xFFF5F5F5),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: sel
+                                  ? const Color(0xFFF5A524)
+                                  : const Color(0xFFE0E0E0),
+                            ),
+                          ),
+                          child: Text(
+                            s,
+                            style: _pop(
+                              size: 11,
+                              weight: FontWeight.w600,
+                              color: sel
+                                  ? Colors.white
+                                  : const Color(0xFF666666),
+                            ),
+                          ),
                         ),
                       );
                     }).toList(),
@@ -499,11 +882,25 @@ class _DriverHomePageState extends State<DriverHomePage> {
                       decoration: BoxDecoration(
                         color: const Color(0xFFF5A524),
                         borderRadius: BorderRadius.circular(14),
-                        boxShadow: [BoxShadow(color: const Color(0xFFF5A524).withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 3))],
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(
+                              0xFFF5A524,
+                            ).withValues(alpha: 0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
                       ),
-                      child: Text(_t('Apply Filters', 'تطبيق الفلاتر', 'Appliquer'),
+                      child: Text(
+                        _t('Apply Filters', 'تطبيق الفلاتر', 'Appliquer'),
                         textAlign: TextAlign.center,
-                        style: _pop(size: 14, weight: FontWeight.w700, color: Colors.white)),
+                        style: _pop(
+                          size: 14,
+                          weight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -516,6 +913,13 @@ class _DriverHomePageState extends State<DriverHomePage> {
   }
 
   Widget _filterSectionTitle(String title) {
-    return Text(title, style: _pop(size: 14, weight: FontWeight.w700, color: const Color(0xFF111111)));
+    return Text(
+      title,
+      style: _pop(
+        size: 14,
+        weight: FontWeight.w700,
+        color: const Color(0xFF111111),
+      ),
+    );
   }
 }

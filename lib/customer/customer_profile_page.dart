@@ -1,0 +1,612 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../app_language.dart';
+
+TextStyle _pop({
+  double? size,
+  FontWeight? weight,
+  Color? color,
+  double? height,
+  double? letterSpacing,
+}) {
+  return GoogleFonts.poppins(
+    fontSize: size,
+    fontWeight: weight,
+    color: color,
+    height: height,
+    letterSpacing: letterSpacing,
+  );
+}
+
+class CustomerProfilePage extends StatefulWidget {
+  const CustomerProfilePage({super.key});
+
+  @override
+  State<CustomerProfilePage> createState() => _CustomerProfilePageState();
+}
+
+class _CustomerProfilePageState extends State<CustomerProfilePage> {
+  String get _lang => appLanguage.lang;
+
+  String _t(String en, String ar, String fr) {
+    if (_lang == 'AR') return ar;
+    if (_lang == 'FR') return fr;
+    return en;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    appLanguage.addListener(_onLangChanged);
+  }
+
+  @override
+  void dispose() {
+    appLanguage.removeListener(_onLangChanged);
+    super.dispose();
+  }
+
+  void _onLangChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildProfileHeader(),
+          const SizedBox(height: 20),
+          _buildMenuButton(
+            icon: Icons.person_outline,
+            label: _t(
+              'Personal Information',
+              'المعلومات الشخصية',
+              'Informations personnelles',
+            ),
+            subtitle: _t(
+              'View and edit your profile',
+              'عرض وتعديل ملفك الشخصي',
+              'Voir et modifier votre profil',
+            ),
+            color: const Color(0xFFF5A524),
+            onTap: () => _showPersonalInfoPage(),
+          ),
+          const SizedBox(height: 12),
+          _buildMenuButton(
+            icon: Icons.language,
+            label: _t('Language', 'اللغة', 'Langue'),
+            subtitle: _lang == 'AR'
+                ? 'العربية'
+                : _lang == 'FR'
+                ? 'Français'
+                : 'English',
+            color: const Color(0xFF2196F3),
+            onTap: () => _showLanguageDialog(),
+          ),
+          const SizedBox(height: 24),
+          _buildLogoutButton(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileHeader() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFF5A524), Color(0xFFF5A524)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFF5A524).withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.4),
+                width: 2,
+              ),
+            ),
+            child: Center(
+              child: Text(
+                'SB',
+                style: _pop(
+                  size: 24,
+                  weight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'Sarah Benali',
+            style: _pop(size: 18, weight: FontWeight.w700, color: Colors.white),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'sarah.benali@email.com',
+            style: _pop(size: 13, color: Colors.white.withValues(alpha: 0.8)),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.verified, size: 14, color: Colors.white),
+                const SizedBox(width: 6),
+                Text(
+                  _t('Customer Account', 'حساب عميل', 'Compte client'),
+                  style: _pop(
+                    size: 11,
+                    weight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMenuButton({
+    required IconData icon,
+    required String label,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFEFEFEF), width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 12,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, size: 22, color: color),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: _pop(
+                      size: 14,
+                      weight: FontWeight.w600,
+                      color: const Color(0xFF111111),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: _pop(size: 11, color: const Color(0xFF999999)),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right, size: 22, color: const Color(0xFFCCCCCC)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLogoutButton() {
+    return GestureDetector(
+      onTap: () {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFEBEE),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(
+                    Icons.logout,
+                    size: 32,
+                    color: Color(0xFFEF4444),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  _t('Logout', 'تسجيل الخروج', 'Déconnexion'),
+                  style: _pop(
+                    size: 16,
+                    weight: FontWeight.w700,
+                    color: const Color(0xFF111111),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _t(
+                    'Are you sure you want to logout?',
+                    'هل أنت متأكد من تسجيل الخروج؟',
+                    'Êtes-vous sûr ?',
+                  ),
+                  textAlign: TextAlign.center,
+                  style: _pop(size: 13, color: const Color(0xFF666666)),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => Navigator.pop(ctx),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF5F5F5),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Center(
+                            child: Text(
+                              _t('Cancel', 'إلغاء', 'Annuler'),
+                              style: _pop(
+                                size: 14,
+                                weight: FontWeight.w600,
+                                color: const Color(0xFF555555),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          Navigator.pushReplacementNamed(
+                            context,
+                            '/onboarding',
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEF4444),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Center(
+                            child: Text(
+                              _t('Logout', 'خروج', 'Déconnexion'),
+                              style: _pop(
+                                size: 14,
+                                weight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFEBEE),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFFEF4444).withValues(alpha: 0.2),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.logout, size: 20, color: Color(0xFFEF4444)),
+            const SizedBox(width: 8),
+            Text(
+              _t('Logout', 'تسجيل الخروج', 'Déconnexion'),
+              style: _pop(
+                size: 14,
+                weight: FontWeight.w700,
+                color: const Color(0xFFEF4444),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showLanguageDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          _t('Language', 'اللغة', 'Langue'),
+          style: _pop(
+            size: 17,
+            weight: FontWeight.w700,
+            color: const Color(0xFF111111),
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _languageOption('English', 'EN', Icons.language),
+            const SizedBox(height: 8),
+            _languageOption('العربية', 'AR', Icons.language),
+            const SizedBox(height: 8),
+            _languageOption('Français', 'FR', Icons.language),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _languageOption(String label, String code, IconData icon) {
+    final selected = _lang == code;
+    return GestureDetector(
+      onTap: () {
+        appLanguage.setLang(code);
+        Navigator.pop(context);
+      },
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: selected
+              ? const Color(0xFFF5A524).withValues(alpha: 0.1)
+              : const Color(0xFFF9F9F9),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? const Color(0xFFF5A524) : const Color(0xFFEFEFEF),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: selected
+                  ? const Color(0xFFF5A524)
+                  : const Color(0xFF999999),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              label,
+              style: _pop(
+                size: 14,
+                weight: FontWeight.w600,
+                color: const Color(0xFF111111),
+              ),
+            ),
+            const Spacer(),
+            if (selected)
+              const Icon(
+                Icons.check_circle,
+                size: 20,
+                color: Color(0xFFF5A524),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showPersonalInfoPage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => _PersonalInfoPage(lang: _lang, t: _t),
+      ),
+    );
+  }
+}
+
+class _PersonalInfoPage extends StatelessWidget {
+  final String lang;
+  final String Function(String, String, String) t;
+  const _PersonalInfoPage({required this.lang, required this.t});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF9F9F9),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(
+            Icons.chevron_left,
+            size: 28,
+            color: Color(0xFF111111),
+          ),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          t(
+            'Personal Information',
+            'المعلومات الشخصية',
+            'Informations personnelles',
+          ),
+          style: GoogleFonts.poppins(
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF111111),
+          ),
+        ),
+        centerTitle: true,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Container(
+              width: 90,
+              height: 90,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFF5A524), Color(0xFFF5A524)],
+                ),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFF5A524).withValues(alpha: 0.3),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Text(
+                  'SB',
+                  style: GoogleFonts.poppins(
+                    fontSize: 30,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            _infoCard(
+              Icons.person_outline,
+              t('Full Name', 'الاسم الكامل', 'Nom complet'),
+              'Sarah Benali',
+            ),
+            const SizedBox(height: 10),
+            _infoCard(
+              Icons.email_outlined,
+              t('Email', 'البريد الإلكتروني', 'Email'),
+              'sarah.benali@email.com',
+            ),
+            const SizedBox(height: 10),
+            _infoCard(
+              Icons.phone_outlined,
+              t('Phone', 'الهاتف', 'Téléphone'),
+              '+213 555 654 321',
+            ),
+            const SizedBox(height: 10),
+            _infoCard(
+              Icons.location_on_outlined,
+              t('Address', 'العنوان', 'Adresse'),
+              'Oran, Algeria',
+            ),
+            const SizedBox(height: 10),
+            _infoCard(
+              Icons.calendar_today_outlined,
+              t('Member Since', 'عضو منذ', 'Membre depuis'),
+              'March 2025',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _infoCard(IconData icon, String label, String value) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFEFEFEF), width: 1),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5A524).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 20, color: const Color(0xFFF5A524)),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: GoogleFonts.poppins(
+                    fontSize: 11,
+                    color: const Color(0xFF999999),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF111111),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

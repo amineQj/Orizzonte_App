@@ -159,6 +159,7 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
     try {
       await Future.delayed(const Duration(seconds: 2));
       debugPrint('Estimate payload: $payload');
+      widget.orderData.estimatedPrice = _estimatePrice!;
       setState(() { _estimatePrice = '4,500'; _estimating = false; });
     } catch (_) {
       setState(() { _estimating = false; });
