@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'services/auth_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app_language.dart';
+import 'models/api_models.dart';
 
 const Map<String, String> _t = {
   'login': 'Welcome Back',
@@ -214,11 +216,13 @@ class AuthFlow extends StatefulWidget {
   final VoidCallback onSuccess;
   final VoidCallback onBossSuccess;
   final VoidCallback onBack;
+  final String demoRole;
   const AuthFlow({
     super.key,
     required this.onSuccess,
     required this.onBossSuccess,
     required this.onBack,
+    this.demoRole = 'client',
   });
 
   @override
@@ -344,6 +348,7 @@ class _AuthFlowState extends State<AuthFlow> {
           onSignup: () => _go(AuthScreen.signup),
           onForgot: () => _go(AuthScreen.forgot),
           onBack: widget.onBack,
+          demoRole: widget.demoRole,
         );
       case AuthScreen.signup:
         return SignupScreen(
@@ -897,6 +902,7 @@ class LoginScreen extends StatefulWidget {
   final VoidCallback onSignup;
   final VoidCallback onForgot;
   final VoidCallback onBack;
+  final String demoRole;
   const LoginScreen({
     super.key,
     required this.onLogin,
@@ -904,6 +910,7 @@ class LoginScreen extends StatefulWidget {
     required this.onSignup,
     required this.onForgot,
     required this.onBack,
+    this.demoRole = 'client',
   });
 
   @override
@@ -1063,19 +1070,32 @@ class _LoginScreenState extends State<LoginScreen> {
           const SizedBox(height: 24),
           _PrimaryBtn(
             label: _tr('loginBtn'),
-            onClick: () {
+            onClick: () async {
               setState(() => _touched = true);
               if (_emailErr == null &&
                   _pwErr == null &&
                   _email.isNotEmpty &&
                   _pw.isNotEmpty) {
-                final isBoss =
-                    _email.trim().toLowerCase() == 'boss@gmail.com' &&
-                    _pw == '12345678';
-                if (isBoss) {
-                  widget.onBossSuccess();
-                } else {
-                  widget.onLogin();
+                try {
+                  final auth = AuthService();
+                  final resp = await auth.login(_email.trim(), _pw);
+                  if (resp.user.role == 'boss') {
+                    widget.onBossSuccess();
+                  } else {
+                    widget.onLogin();
+                  }
+                } catch (e) {
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Sign in failed: ${apiErrorMessage(e)}',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      backgroundColor: const Color(0xFFE0533D),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
                 }
               }
             },

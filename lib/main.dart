@@ -7,6 +7,8 @@ import 'auth_flow.dart';
 import 'boss/boss_shell.dart';
 import 'customer/customer_shell.dart';
 import 'driver_shell.dart';
+import 'services/auth_service.dart';
+import 'services/auth_session.dart';
 import 'splash_screen.dart';
 
 const _slides = [
@@ -108,8 +110,12 @@ TextStyle _poppins({
   );
 }
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AuthSession.instance.load();
+  // Register the 401 → refresh-token handler for the whole app, including
+  // sessions restored from storage on a cold start.
+  AuthService();
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -625,6 +631,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           context,
           MaterialPageRoute(
             builder: (_) => AuthFlow(
+              demoRole: 'client',
               onBack: () => Navigator.pop(context),
               onSuccess: () {
                 Navigator.pushReplacement(
@@ -721,6 +728,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           context,
           MaterialPageRoute(
             builder: (_) => AuthFlow(
+              demoRole: 'driver',
               onBack: () => Navigator.pop(context),
               onSuccess: () {
                 Navigator.pushReplacement(

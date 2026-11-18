@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app_language.dart';
+import 'negotiation/negotiation_page.dart';
 import 'services/driver_mission_store.dart';
+import 'widgets/api_state.dart';
 import 'verification_flow_screen.dart';
 
 TextStyle _pop({
@@ -67,6 +69,7 @@ class _DriverHomePageState extends State<DriverHomePage> {
     super.initState();
     appLanguage.addListener(_onLangChanged);
     DriverMissionStore.instance.addListener(_onStoreChanged);
+    DriverMissionStore.instance.load();
   }
 
   @override
@@ -159,14 +162,55 @@ class _DriverHomePageState extends State<DriverHomePage> {
             ],
           ),
           const SizedBox(height: 12),
-          ..._available.map(
-            (m) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _buildProfessionalCard(m),
-            ),
-          ),
+          _buildMissionList(),
         ],
       ),
+    );
+  }
+
+  Widget _buildMissionList() {
+    final store = DriverMissionStore.instance;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (store.isDemo) DemoWarningBanner(onRetry: () => store.retry()),
+        if (store.isLoading)
+          const SizedBox(
+            height: 180,
+            child: ApiLoadingView(message: 'Loading available missions...'),
+          )
+        else if (store.error != null && _available.isEmpty)
+          SizedBox(
+            height: 260,
+            child: ApiErrorView(
+              message: store.error!,
+              onRetry: () => store.retry(),
+            ),
+          )
+        else if (_available.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 32),
+            child: Center(
+              child: Text(
+                _t('No available missions right now.',
+                    'لا توجد مهام متاحة حالياً.',
+                    'Aucune mission disponible.'),
+                style: _pop(size: 13, color: const Color(0xFF999999)),
+              ),
+            ),
+          )
+        else
+          Column(
+            children: _available
+                .map(
+                  (m) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _buildProfessionalCard(m),
+                  ),
+                )
+                .toList(),
+          ),
+      ],
     );
   }
 
@@ -244,10 +288,11 @@ class _DriverHomePageState extends State<DriverHomePage> {
                   builder: (_) => const VerificationFlowScreen(),
                 ),
               );
-              if (result == true)
+              if (result == true) {
                 setState(() {
                   _verified = 1;
                 });
+              }
             },
             child: Container(
               width: double.infinity,
@@ -581,11 +626,47 @@ class _DriverHomePageState extends State<DriverHomePage> {
                 ),
               ],
             ),
+            if (m['negotiable'] == 'true') ...[
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: () {
+                  final id = int.tryParse(m['id']!);
+                  if (id == null) return;
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => NegotiationPage(missionId: id),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFF5A524)),
+                  ),
+                  child: Text(
+                    _t('Propose a price', 'اقترح سعراً', 'Proposer un prix'),
+                    textAlign: TextAlign.center,
+                    style: _pop(
+                      size: 12,
+                      weight: FontWeight.w700,
+                      color: const Color(0xFFF5A524),
+                    ),
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 10),
             // Row 3: action button
             GestureDetector(
-              onTap: () {
-                DriverMissionStore.instance.acceptMission(m['id']!);
+              onTap: () async {
+                final ok = await DriverMissionStore.instance.acceptMission(m['id']!);
+                if (!mounted) return;
+                final error = DriverMissionStore.instance.error;
+                if (!ok && error != null) showApiError(context, error);
               },
               child: Container(
                 width: double.infinity,

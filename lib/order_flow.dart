@@ -511,8 +511,9 @@ class _OrderFlowState extends State<OrderFlow> {
         ],
       ),
     );
-    if (_isRtl)
+    if (_isRtl) {
       return Directionality(textDirection: TextDirection.rtl, child: content);
+    }
     return content;
   }
 

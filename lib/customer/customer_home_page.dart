@@ -6,6 +6,7 @@ import '../customer_screen.dart';
 import 'mission_model.dart';
 import 'mission_repository.dart';
 import 'customer_mission_details_page.dart';
+import '../widgets/api_state.dart';
 
 TextStyle _pop({
   double? size,
@@ -78,40 +79,46 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
 
     final missions = repo.missions;
 
-    return SingleChildScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            _t('My Missions', 'مهامي', 'Mes missions'),
-            style: _pop(
-              size: 18,
-              weight: FontWeight.w800,
-              color: const Color(0xFF111111),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            _t(
-              'Track the missions you have created.',
-              'تابع المهام التي أنشأتها.',
-              'Suivez vos missions.',
-            ),
-            style: _pop(size: 12, color: const Color(0xFF999999)),
-          ),
-          const SizedBox(height: 16),
-          if (missions.isEmpty)
-            _buildEmptyState()
-          else
-            ...missions.map(
-              (m) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _buildMissionCard(m),
+    return RefreshIndicator(
+      color: const Color(0xFFF5A524),
+      onRefresh: () => repo.retry(),
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _t('My Missions', 'مهامي', 'Mes missions'),
+              style: _pop(
+                size: 18,
+                weight: FontWeight.w800,
+                color: const Color(0xFF111111),
               ),
             ),
-        ],
+            const SizedBox(height: 4),
+            Text(
+              _t(
+                'Track the missions you have created.',
+                'تابع المهام التي أنشأتها.',
+                'Suivez vos missions.',
+              ),
+              style: _pop(size: 12, color: const Color(0xFF999999)),
+            ),
+            const SizedBox(height: 16),
+            if (repo.isDemo)
+              DemoWarningBanner(onRetry: () => repo.retry()),
+            if (missions.isEmpty)
+              _buildEmptyState()
+            else
+              ...missions.map(
+                (m) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildMissionCard(m),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

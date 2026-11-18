@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
@@ -20,8 +19,10 @@ class VerificationIdentityScreen extends StatefulWidget {
 }
 
 class _VerificationIdentityScreenState extends State<VerificationIdentityScreen> {
-  File? _frontImage;
-  File? _backImage;
+  // Bytes from XFile.readAsBytes() work on mobile AND web. dart:io File with
+  // XFile.path fails on Flutter Web, producing "Failed to process image".
+  Uint8List? _frontImage;
+  Uint8List? _backImage;
   bool _processing = false;
 
   String get _lang => appLanguage.lang;
@@ -37,20 +38,19 @@ class _VerificationIdentityScreenState extends State<VerificationIdentityScreen>
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.camera, preferredCameraDevice: CameraDevice.rear);
     if (picked != null) {
-      final file = File(picked.path);
-      final error = await _validateImage(file);
+      final bytes = await picked.readAsBytes();
+      final error = await _validateImage(bytes);
       if (!mounted) return;
       if (error != null) {
         _showRejectionDialog(error);
         return;
       }
-      _showPreview(file, isFront);
+      _showPreview(bytes, isFront);
     }
   }
 
-  Future<String?> _validateImage(File file) async {
+  Future<String?> _validateImage(Uint8List bytes) async {
     try {
-      final bytes = await file.readAsBytes();
       final codec = await ui.instantiateImageCodec(bytes);
       final frame = await codec.getNextFrame();
       final image = frame.image;
@@ -62,7 +62,7 @@ class _VerificationIdentityScreenState extends State<VerificationIdentityScreen>
         return _t('Image resolution is too low. Please retake with better quality.', 'دقة الصورة منخفضة جداً. أعد التصوير بجودة أفضل.', 'La résolution est trop basse. Réessayez avec une meilleure qualité.');
       }
 
-      final byteData = await _getPixelData(file);
+      final byteData = await _getPixelData(bytes);
       if (byteData != null) {
         final brightness = _calculateBrightness(byteData);
         if (brightness < 30) {
@@ -79,9 +79,8 @@ class _VerificationIdentityScreenState extends State<VerificationIdentityScreen>
     }
   }
 
-  Future<ByteData?> _getPixelData(File file) async {
+  Future<ByteData?> _getPixelData(Uint8List bytes) async {
     try {
-      final bytes = await file.readAsBytes();
       final codec = await ui.instantiateImageCodec(bytes, targetWidth: 100, targetHeight: 100);
       final frame = await codec.getNextFrame();
       final image = frame.image;
@@ -144,7 +143,7 @@ class _VerificationIdentityScreenState extends State<VerificationIdentityScreen>
     );
   }
 
-  void _showPreview(File image, bool isFront) {
+  void _showPreview(Uint8List image, bool isFront) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -174,7 +173,7 @@ class _VerificationIdentityScreenState extends State<VerificationIdentityScreen>
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(16),
-                        child: Image.file(image, width: double.infinity, height: double.infinity, fit: BoxFit.contain),
+                        child: Image.memory(image, width: double.infinity, height: double.infinity, fit: BoxFit.contain),
                       ),
                       Positioned.fill(
                         child: IgnorePointer(
@@ -335,7 +334,7 @@ class _VerificationIdentityScreenState extends State<VerificationIdentityScreen>
     );
   }
 
-  Widget _buildScanCard({required String label, required File? image, required IconData icon, required VoidCallback onTap}) {
+  Widget _buildScanCard({required String label, required Uint8List? image, required IconData icon, required VoidCallback onTap}) {
     return GestureDetector(
       onTap: _processing ? null : onTap,
       child: Container(
@@ -354,7 +353,7 @@ class _VerificationIdentityScreenState extends State<VerificationIdentityScreen>
             if (image != null)
               ClipRRect(
                 borderRadius: BorderRadius.circular(14),
-                child: Image.file(image, width: double.infinity, height: double.infinity, fit: BoxFit.cover),
+                child: Image.memory(image, width: double.infinity, height: double.infinity, fit: BoxFit.cover),
               )
             else
               Center(

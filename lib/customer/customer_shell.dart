@@ -276,8 +276,12 @@ class _CustomerShellState extends State<CustomerShell> {
         builder: (_) => CustomerScreen(
           onMissionConfirmed: (data) {
             MissionRepository.instance.addMission(
-              CustomerMission.fromOrder(data),
+              CustomerMission.fromOrder(
+                data,
+                id: data.backendMissionId?.toString(),
+              ),
             );
+            MissionRepository.instance.load();
           },
         ),
       ),

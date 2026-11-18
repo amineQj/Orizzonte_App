@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
@@ -20,7 +19,9 @@ class VerificationSelfieScreen extends StatefulWidget {
 }
 
 class _VerificationSelfieScreenState extends State<VerificationSelfieScreen> {
-  File? _selfieImage;
+  // Bytes from XFile.readAsBytes() work on mobile AND web; dart:io File with
+  // XFile.path fails on Flutter Web ("Failed to process image").
+  Uint8List? _selfieImage;
   bool _processing = false;
 
   String get _lang => appLanguage.lang;
@@ -36,20 +37,19 @@ class _VerificationSelfieScreenState extends State<VerificationSelfieScreen> {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.camera, preferredCameraDevice: CameraDevice.front);
     if (picked != null) {
-      final file = File(picked.path);
-      final error = await _validateImage(file);
+      final bytes = await picked.readAsBytes();
+      final error = await _validateImage(bytes);
       if (!mounted) return;
       if (error != null) {
         _showRejectionDialog(error);
         return;
       }
-      _showPreview(file);
+      _showPreview(bytes);
     }
   }
 
-  Future<String?> _validateImage(File file) async {
+  Future<String?> _validateImage(Uint8List bytes) async {
     try {
-      final bytes = await file.readAsBytes();
       final codec = await ui.instantiateImageCodec(bytes);
       final frame = await codec.getNextFrame();
       final image = frame.image;
@@ -61,7 +61,7 @@ class _VerificationSelfieScreenState extends State<VerificationSelfieScreen> {
         return _t('Image resolution is too low. Please retake.', 'دقة الصورة منخفضة جداً. أعد المحاولة.', 'La résolution est trop basse. Réessayez.');
       }
 
-      final byteData = await _getPixelData(file);
+      final byteData = await _getPixelData(bytes);
       if (byteData != null) {
         final brightness = _calculateBrightness(byteData);
         if (brightness < 30) {
@@ -78,9 +78,8 @@ class _VerificationSelfieScreenState extends State<VerificationSelfieScreen> {
     }
   }
 
-  Future<ByteData?> _getPixelData(File file) async {
+  Future<ByteData?> _getPixelData(Uint8List bytes) async {
     try {
-      final bytes = await file.readAsBytes();
       final codec = await ui.instantiateImageCodec(bytes, targetWidth: 100, targetHeight: 100);
       final frame = await codec.getNextFrame();
       final image = frame.image;
@@ -143,7 +142,7 @@ class _VerificationSelfieScreenState extends State<VerificationSelfieScreen> {
     );
   }
 
-  void _showPreview(File image) {
+  void _showPreview(Uint8List image) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -172,7 +171,7 @@ class _VerificationSelfieScreenState extends State<VerificationSelfieScreen> {
                   child: Container(
                     width: double.infinity,
                     decoration: const BoxDecoration(shape: BoxShape.circle),
-                    child: Image.file(image, fit: BoxFit.cover),
+                    child: Image.memory(image, fit: BoxFit.cover),
                   ),
                 ),
               ),
@@ -279,7 +278,7 @@ class _VerificationSelfieScreenState extends State<VerificationSelfieScreen> {
                   children: [
                     if (_selfieImage != null)
                       ClipOval(
-                        child: Image.file(_selfieImage!, width: 200, height: 200, fit: BoxFit.cover),
+                        child: Image.memory(_selfieImage!, width: 200, height: 200, fit: BoxFit.cover),
                       )
                     else
                       Center(

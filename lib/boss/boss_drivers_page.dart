@@ -5,6 +5,7 @@ import '../customer/mission_repository.dart';
 import 'boss_model.dart';
 import 'boss_repository.dart';
 import 'boss_ui.dart';
+import '../widgets/api_state.dart' hide formatDzd;
 
 /// Drivers tab: the registered carrier list with mission history.
 ///
@@ -120,6 +121,10 @@ class _BossDriversPageState extends State<BossDriversPage> {
           ),
         ),
         const SizedBox(height: 16),
+        if (BossRepository.instance.isDemo)
+          DemoWarningBanner(onRetry: () => BossRepository.instance.retry()),
+        _buildPendingSection(),
+        const SizedBox(height: 8),
         Expanded(
           child: drivers.isEmpty
               ? _emptyState()
@@ -131,6 +136,132 @@ class _BossDriversPageState extends State<BossDriversPage> {
                 ),
         ),
       ],
+    );
+  }
+
+  Widget _buildPendingSection() {
+    final pending = BossRepository.instance.pendingDrivers;
+    if (pending.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFF5A524).withValues(alpha: 0.4)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.person_add_alt_1, color: Color(0xFFF5A524), size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  tr('Pending approvals', 'موافقات معلقة', 'Approbations en attente'),
+                  style: pop(size: 14, weight: FontWeight.w700, color: const Color(0xFF111111)),
+                ),
+                const Spacer(),
+                Text(
+                  '${pending.length}',
+                  style: pop(size: 13, weight: FontWeight.w700, color: const Color(0xFFF5A524)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            ...pending.map(
+              (p) => Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundColor: const Color(0xFFFFF3E0),
+                      child: Text(
+                        p.fullName.isEmpty
+                            ? '?'
+                            : p.fullName.substring(0, 1).toUpperCase(),
+                        style: pop(size: 13, weight: FontWeight.w700, color: const Color(0xFFF5A524)),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            p.fullName.isEmpty ? 'Driver #${p.userId}' : p.fullName,
+                            style: pop(size: 12, weight: FontWeight.w600, color: const Color(0xFF222222)),
+                          ),
+                          Text(
+                            '${p.phone} ${p.vehiclePlate.isNotEmpty ? '• ${p.vehiclePlate}' : ''}',
+                            style: pop(size: 10, color: const Color(0xFF999999)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () async {
+                        final ok = await BossRepository.instance.approveDriver(p.userId.toString());
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(ok
+                                ? tr('Driver approved', 'تمت الموافقة على السائق', 'Chauffeur approuvé')
+                                : BossRepository.instance.error ?? tr('Failed', 'فشل', 'Échec')),
+                            backgroundColor: ok ? const Color(0xFF4CAF50) : const Color(0xFFE0533D),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF4CAF50).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          tr('Approve', 'موافقة', 'Approuver'),
+                          style: pop(size: 11, weight: FontWeight.w700, color: const Color(0xFF4CAF50)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    GestureDetector(
+                      onTap: () async {
+                        final ok = await BossRepository.instance.rejectDriver(
+                          p.userId.toString(),
+                          tr('Rejected by admin', 'مرفوض من الإدارة', 'Refusé par l\'administrateur'),
+                        );
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(ok
+                                ? tr('Driver rejected', 'تم رفض السائق', 'Chauffeur refusé')
+                                : BossRepository.instance.error ?? tr('Failed', 'فشل', 'Échec')),
+                            backgroundColor: ok ? const Color(0xFFE0533D) : const Color(0xFF999999),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFEBEE),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          tr('Reject', 'رفض', 'Refuser'),
+                          style: pop(size: 11, weight: FontWeight.w700, color: const Color(0xFFE0533D)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

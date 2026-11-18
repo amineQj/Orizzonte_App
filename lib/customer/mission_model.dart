@@ -20,6 +20,7 @@ enum MissionStatus {
 /// so a mission only carries driver information once one has been assigned.
 /// The UI renders this section whenever it is present.
 class DriverInfo {
+  final String id;
   final String name;
   final String phone;
   final double? rating;
@@ -27,6 +28,7 @@ class DriverInfo {
   final String? image;
 
   const DriverInfo({
+    this.id = '',
     required this.name,
     required this.phone,
     this.rating,
@@ -35,6 +37,7 @@ class DriverInfo {
   });
 
   Map<String, dynamic> toJson() => {
+    'id': id,
     'name': name,
     'phone': phone,
     'rating': rating,
@@ -43,6 +46,7 @@ class DriverInfo {
   };
 
   factory DriverInfo.fromJson(Map<String, dynamic> j) => DriverInfo(
+    id: j['id'] as String? ?? '',
     name: j['name'] as String? ?? '',
     phone: j['phone'] as String? ?? '',
     rating: (j['rating'] as num?)?.toDouble(),
@@ -61,6 +65,7 @@ class CustomerMission {
   final MissionStatus status;
   final DateTime createdAt;
   final DriverInfo? driver;
+  final bool negotiable;
 
   const CustomerMission({
     required this.id,
@@ -68,6 +73,7 @@ class CustomerMission {
     required this.status,
     required this.createdAt,
     this.driver,
+    this.negotiable = false,
   });
 
   /// Builds a mission from a freshly confirmed order.
@@ -84,16 +90,22 @@ class CustomerMission {
       order: order,
       status: MissionStatus.pending,
       createdAt: createdAt ?? DateTime.now(),
+      negotiable: order.negotiable,
     );
   }
 
-  CustomerMission copyWith({MissionStatus? status, DriverInfo? driver}) {
+  CustomerMission copyWith({
+    MissionStatus? status,
+    DriverInfo? driver,
+    bool? negotiable,
+  }) {
     return CustomerMission(
       id: id,
       order: order,
       status: status ?? this.status,
       createdAt: createdAt,
       driver: driver ?? this.driver,
+      negotiable: negotiable ?? this.negotiable,
     );
   }
 
@@ -102,6 +114,7 @@ class CustomerMission {
     'status': status.index,
     'createdAt': createdAt.toIso8601String(),
     'driver': driver?.toJson(),
+    'negotiable': negotiable,
     'order': _orderToJson(order),
   };
 
@@ -114,6 +127,7 @@ class CustomerMission {
       driver: j['driver'] != null
           ? DriverInfo.fromJson(j['driver'] as Map<String, dynamic>)
           : null,
+      negotiable: j['negotiable'] as bool? ?? false,
     );
   }
 

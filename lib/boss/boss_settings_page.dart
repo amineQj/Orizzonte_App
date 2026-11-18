@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../app_language.dart';
+import '../screens/boss_pricing_screen.dart';
+import '../services/auth_session.dart';
 import 'boss_repository.dart';
 import 'boss_ui.dart';
 
@@ -84,7 +86,9 @@ class _BossSettingsPageState extends State<BossSettingsPage> {
     _toast(tr('Account updated', 'تم تحديث الحساب', 'Compte mis à jour'));
   }
 
-  void _signOut() {
+  void _signOut() async {
+    await AuthSession.instance.clear();
+    if (!mounted) return;
     Navigator.of(
       context,
     ).pushNamedAndRemoveUntil('/onboarding', (route) => false);
@@ -115,7 +119,45 @@ class _BossSettingsPageState extends State<BossSettingsPage> {
             ),
             style: pop(size: 12, color: const Color(0xFF999999)),
           ),
-          const SizedBox(height: 16),
+          if (AuthSession.instance.isBoss()) ...[
+            _card(
+              title: tr(
+                'Backend Pricing Config (API)',
+                'إعدادات التسعير (واجهة برمجة التطبيقات)',
+                'Config tarifaire backend (API)',
+              ),
+              icon: Icons.cloud_sync_outlined,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    tr(
+                      'Fetch and update live pricing parameters from the server. Password confirmation is required when saving.',
+                      'جلب وتحديث معايير التسعير المباشرة من الخادم. يلزم تأكيد كلمة المرور عند الحفظ.',
+                      'Récupérez et mettez à jour les paramètres tarifaires depuis le serveur. Confirmation par mot de passe requise.',
+                    ),
+                    style: pop(size: 12, color: const Color(0xFF666666), height: 1.5),
+                  ),
+                  const SizedBox(height: 14),
+                  _saveButton(
+                    label: tr(
+                      'Open Pricing Configuration',
+                      'فتح إعدادات التسعير',
+                      'Ouvrir la configuration tarifaire',
+                    ),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const BossPricingScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
           _card(
             title: tr(
               'Pricing Configuration',

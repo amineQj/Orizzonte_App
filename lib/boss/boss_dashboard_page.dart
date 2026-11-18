@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../app_language.dart';
 import '../customer/mission_model.dart';
 import '../customer/mission_repository.dart';
+import '../widgets/api_state.dart' hide formatDzd;
 import 'boss_repository.dart';
 import 'boss_ui.dart';
 
@@ -58,12 +59,26 @@ class _BossDashboardPageState extends State<BossDashboardPage> {
         .where((m) => m.status != MissionStatus.cancelled)
         .fold<double>(0, (sum, m) => sum + parseDzd(m.order.estimatedPrice));
 
+    if (BossRepository.instance.isLoading && missions.isEmpty) {
+      return const ApiLoadingView(message: 'Loading dashboard...');
+    }
+    if (BossRepository.instance.error != null && missions.isEmpty) {
+      return ApiErrorView(
+        message: BossRepository.instance.error!,
+        onRetry: () => BossRepository.instance.retry(),
+      );
+    }
+
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (BossRepository.instance.isDemo)
+            DemoWarningBanner(
+              onRetry: () => BossRepository.instance.retry(),
+            ),
           Row(
             children: [
               Expanded(

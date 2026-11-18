@@ -23,6 +23,12 @@ class OrderData {
   String confirmationMethod;
   String estimatedPrice;
 
+  /// Set by the estimate/confirm API calls in OrderConfirmationScreen.
+  String? quoteId;
+  int? backendMissionId;
+  String? priceRange;
+  bool negotiable = false;
+
   OrderData({
     this.category = '',
     this.shipmentType = '',
@@ -45,5 +51,6 @@ class OrderData {
     this.phoneNumber = '',
     this.confirmationMethod = '',
     this.estimatedPrice = '',
+    this.negotiable = false,
   });
 }

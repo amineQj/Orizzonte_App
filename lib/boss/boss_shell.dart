@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../app_language.dart';
+import 'boss_repository.dart';
 import 'boss_dashboard_page.dart';
 import 'boss_drivers_page.dart';
 import 'boss_requests_page.dart';
@@ -27,6 +28,7 @@ class _BossShellState extends State<BossShell> {
   void initState() {
     super.initState();
     appLanguage.addListener(_onLangChanged);
+    BossRepository.instance.load();
   }
 
   @override

@@ -5,6 +5,7 @@ import '../customer/mission_repository.dart';
 import 'boss_model.dart';
 import 'boss_repository.dart';
 import 'boss_ui.dart';
+import '../widgets/api_state.dart';
 
 enum _Filter { all, pending, accepted, inProgress, completed }
 
@@ -66,6 +67,10 @@ class _BossRequestsPageState extends State<BossRequestsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (MissionRepository.instance.isDemo)
+          DemoWarningBanner(
+            onRetry: () => MissionRepository.instance.retry(),
+          ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Text(
@@ -80,16 +85,26 @@ class _BossRequestsPageState extends State<BossRequestsPage> {
         _filterChips(),
         const SizedBox(height: 8),
         Expanded(
-          child: visible.isEmpty
-              ? _emptyState()
-              : ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
-                  itemCount: visible.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 12),
-                  itemBuilder: (_, i) => _missionCard(visible[i]),
-                ),
+          child: _buildMissionList(visible),
         ),
       ],
+    );
+  }
+
+  Widget _buildMissionList(List<CustomerMission> visible) {
+    final repo = MissionRepository.instance;
+    if (repo.isLoading && visible.isEmpty) {
+      return const ApiLoadingView(message: 'Loading missions...');
+    }
+    if (repo.error != null && visible.isEmpty) {
+      return ApiErrorView(message: repo.error!, onRetry: () => repo.retry());
+    }
+    if (visible.isEmpty) return _emptyState();
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+      itemCount: visible.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
+      itemBuilder: (_, i) => _missionCard(visible[i]),
     );
   }
 
@@ -614,17 +629,24 @@ class _BossRequestsPageState extends State<BossRequestsPage> {
         )
         .length;
     return InkWell(
-      onTap: () {
+      onTap: () async {
         Navigator.pop(ctx);
-        MissionRepository.instance.assignDriver(
+        await MissionRepository.instance.assignDriver(
           m.id,
           DriverInfo(
+            id: driver.id,
             name: driver.name,
             phone: driver.phone,
             rating: driver.rating,
             vehicle: driver.vehicle,
           ),
         );
+        if (!mounted) return;
+        final error = MissionRepository.instance.error;
+        if (error != null) {
+          showApiError(context, error);
+          return;
+        }
         _toast(tr('Driver assigned', 'تم تعيين السائق', 'Chauffeur assigné'));
       },
       borderRadius: BorderRadius.circular(16),
@@ -912,12 +934,18 @@ class _BossRequestsPageState extends State<BossRequestsPage> {
         cancelLabel: tr('Keep', 'إبقاء', 'Garder'),
         confirmColor: const Color(0xFFEF4444),
         icon: Icons.block,
-        onConfirm: () {
+        onConfirm: () async {
           Navigator.pop(ctx);
-          MissionRepository.instance.updateStatus(
+          await MissionRepository.instance.updateStatus(
             m.id,
             MissionStatus.cancelled,
           );
+          if (!mounted) return;
+          final error = MissionRepository.instance.error;
+          if (error != null) {
+            showApiError(context, error);
+            return;
+          }
           _toast(tr('Mission cancelled', 'تم إلغاء المهمة', 'Mission annulée'));
         },
       ),
@@ -943,9 +971,15 @@ class _BossRequestsPageState extends State<BossRequestsPage> {
         cancelLabel: tr('Keep', 'إبقاء', 'Garder'),
         confirmColor: const Color(0xFFEF4444),
         icon: Icons.delete_outline,
-        onConfirm: () {
+        onConfirm: () async {
           Navigator.pop(ctx);
-          MissionRepository.instance.deleteMission(m.id);
+          await MissionRepository.instance.deleteMission(m.id);
+          if (!mounted) return;
+          final error = MissionRepository.instance.error;
+          if (error != null) {
+            showApiError(context, error);
+            return;
+          }
           _toast(tr('Mission deleted', 'تم حذف المهمة', 'Mission supprimée'));
         },
       ),

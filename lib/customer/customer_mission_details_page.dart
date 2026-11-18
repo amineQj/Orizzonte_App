@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../app_language.dart';
+import '../negotiation/negotiation_page.dart';
 import '../order_flow.dart';
 import '../order_model.dart';
 import '../customer_screen.dart';
@@ -234,6 +235,46 @@ class _CustomerMissionDetailsPageState
             if (mission.driver != null) ...[
               const SizedBox(height: 20),
               _buildDriverCard(mission.driver!),
+            ],
+            if (mission.negotiable &&
+                (mission.status == MissionStatus.pending ||
+                    mission.status == MissionStatus.accepted)) ...[
+              const SizedBox(height: 24),
+              GestureDetector(
+                onTap: () {
+                  final id = int.tryParse(mission.id);
+                  if (id == null) return;
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => NegotiationPage(missionId: id),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5A524),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.swap_horiz,
+                          size: 18, color: Colors.white),
+                      const SizedBox(width: 8),
+                      Text(
+                        _t('Open negotiation', 'فتح التفاوض', 'Ouvrir la négociation'),
+                        style: _pop(
+                            size: 14,
+                            weight: FontWeight.w700,
+                            color: Colors.white),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
             if (canCancel) ...[
               const SizedBox(height: 24),

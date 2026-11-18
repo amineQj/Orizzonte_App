@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app_language.dart';
+import 'models/api_models.dart';
 import 'order_model.dart';
+import 'services/api_payload.dart';
+import 'services/api_service.dart';
+import 'widgets/api_state.dart';
 
 TextStyle _pop({double? size, FontWeight? weight, Color? color, double? height, double? letterSpacing}) {
   return GoogleFonts.poppins(fontSize: size, fontWeight: weight, color: color, height: height, letterSpacing: letterSpacing);
@@ -33,6 +37,10 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
   bool _estimating = false;
   bool _submitting = false;
   String? _estimatePrice;
+  EstimateResult? _estimate;
+  bool _negotiable = false;
+
+  final ApiService _api = ApiService();
 
   String get _lang => appLanguage.lang;
   bool get _isArabic => _lang == 'AR';
@@ -127,65 +135,74 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
     );
   }
 
-  Map<String, dynamic> _buildPayload() {
-    final d = widget.orderData;
-    return {
-      'shipmentType': d.shipmentType,
-      'truckType': d.truckType,
-      'truckModel': d.truckModel,
-      'bodyType': d.bodyType,
-      'weight': d.weight,
-      'length': d.length,
-      'width': d.width,
-      'pickupAddress': d.pickup,
-      'deliveryAddress': d.delivery,
-      'pickupLat': d.pickupCoords?['lat'] ?? 0,
-      'pickupLng': d.pickupCoords?['lng'] ?? 0,
-      'deliveryLat': d.deliveryCoords?['lat'] ?? 0,
-      'deliveryLng': d.deliveryCoords?['lng'] ?? 0,
-      'distance': d.distance,
-      'date': d.isNow ? 'now' : d.manualDate,
-      'time': d.manualTime,
-      'commodity': d.commodity,
-      'helpers': d.helpers,
-      'phoneNumber': d.phoneNumber,
-      'confirmationMethod': d.confirmationMethod,
-    };
-  }
-
   Future<void> _getEstimate() async {
-    final payload = _buildPayload();
-    setState(() { _estimating = true; });
+    setState(() => _estimating = true);
     try {
-      await Future.delayed(const Duration(seconds: 2));
-      debugPrint('Estimate payload: $payload');
-      widget.orderData.estimatedPrice = _estimatePrice!;
-      setState(() { _estimatePrice = '4,500'; _estimating = false; });
-    } catch (_) {
-      setState(() { _estimating = false; });
-      _showError(_t(
-        'Failed to get estimate. Please try again.',
-        'فشل في الحصول على التقدير. يرجى المحاولة مرة أخرى.',
-        'Échec de l\'estimation. Veuillez réessayer.',
-      ));
+      final result = await _api.estimateMission(
+        ApiPayload.estimate(widget.orderData),
+      );
+      final est = result.estimate;
+      final amount = est?.amount ?? result.estimatedPrice.round();
+      widget.orderData.quoteId = est?.quoteId;
+      widget.orderData.priceRange = est != null
+          ? '${formatDzd(est.low)} – ${formatDzd(est.high)} DZD'
+          : null;
+      widget.orderData.estimatedPrice = formatDzd(amount);
+      if (!mounted) return;
+      setState(() {
+        _estimate = result;
+        _estimatePrice = formatDzd(amount);
+        _estimating = false;
+      });
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _estimating = false);
+      _showError(_estimateErrorMessage(e));
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _estimating = false);
+      _showError(apiErrorMessage(e));
     }
   }
 
+  String _estimateErrorMessage(ApiException e) {
+    if (e.code == 'invalid_distance') {
+      return _t('The distance is invalid. Please reselect the route on the map.',
+          'المسافة غير صالحة. يرجى إعادة تحديد المسار على الخريطة.',
+          'La distance est invalide. Veuillez resélectionner l\'itinéraire.');
+    }
+    if (e.code == 'invalid_coordinates') {
+      return _t('Pickup or delivery coordinates are invalid.',
+          'إحداثيات الاستلام أو التسليم غير صالحة.',
+          'Les coordonnées de prise en charge ou de livraison sont invalides.');
+    }
+    return apiErrorMessage(e);
+  }
+
   Future<void> _confirmOrder() async {
-    final payload = _buildPayload();
-    setState(() { _submitting = true; });
+    setState(() => _submitting = true);
     try {
-      await Future.delayed(const Duration(seconds: 2));
-      debugPrint('Confirm payload: $payload');
-      setState(() { _submitting = false; });
+      final mission = await _api.confirmMission(
+        ApiPayload.confirm(
+          widget.orderData,
+          quoteId: widget.orderData.quoteId,
+          negotiable: _negotiable,
+        ),
+      );
+      widget.orderData.backendMissionId = mission.id;
+      widget.orderData.estimatedPrice = formatDzd(mission.price);
+      widget.orderData.negotiable = mission.negotiable;
+      if (!mounted) return;
+      setState(() => _submitting = false);
       _showSuccess();
-    } catch (_) {
-      setState(() { _submitting = false; });
-      _showError(_t(
-        'Failed to confirm order. Please try again.',
-        'فشل في تأكيد الطلب. يرجى المحاولة مرة أخرى.',
-        'Échec de la confirmation. Veuillez réessayer.',
-      ));
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      _showError(apiErrorMessage(e));
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      _showError(apiErrorMessage(e));
     }
   }
 
@@ -216,6 +233,10 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
                     const SizedBox(height: 16),
                   ],
                   _buildEstimateButton(),
+                  if (_estimate != null) ...[
+                    const SizedBox(height: 14),
+                    _buildNegotiableToggle(),
+                  ],
                   const SizedBox(height: 12),
                   _buildConfirmButton(),
                 ],
@@ -436,7 +457,35 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
     );
   }
 
+  Widget _buildNegotiableToggle() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F8F8),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFECECEC)),
+      ),
+      child: SwitchListTile(
+        contentPadding: EdgeInsets.zero,
+        value: _negotiable,
+        activeThumbColor: const Color(0xFFF5A524),
+        onChanged: (v) => setState(() => _negotiable = v),
+        title: Text(
+          _t('Allow price negotiation', 'السماح بتفاوض السعر', 'Autoriser la négociation'),
+          style: _pop(size: 13, weight: FontWeight.w600, color: const Color(0xFF333333)),
+        ),
+        subtitle: Text(
+          _t('Approved drivers can send offers on this mission.',
+              'يمكن للسائقين المعتمدين إرسال عروض على هذه المهمة.',
+              'Les chauffeurs agréés peuvent envoyer des offres.'),
+          style: _pop(size: 11, color: const Color(0xFF999999)),
+        ),
+      ),
+    );
+  }
+
   Widget _buildEstimateDisplay() {
+    final range = widget.orderData.priceRange;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 20),
@@ -452,6 +501,21 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
           const SizedBox(height: 6),
           Text('${_estimatePrice!} DZD',
             style: _pop(size: 28, weight: FontWeight.w800, color: const Color(0xFFF5A524))),
+          if (range != null) ...[
+            const SizedBox(height: 4),
+            Text(range,
+              style: _pop(size: 13, weight: FontWeight.w600, color: const Color(0xFF777777))),
+          ],
+          if (_estimate?.estimate?.isLowConfidence ?? false) ...[
+            const SizedBox(height: 8),
+            Text(
+              _t('Approximate estimate (route distance unavailable)',
+                  'تقدير تقريبي (المسافة غير متوفرة)',
+                  'Estimation approximative (distance indisponible)'),
+              style: _pop(size: 11, color: const Color(0xFFE08A00)),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ],
       ),
     );

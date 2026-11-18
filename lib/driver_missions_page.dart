@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'app_language.dart';
 
 import 'services/driver_mission_store.dart';
+import 'widgets/api_state.dart';
 
 TextStyle _pop({
   double? size,
@@ -67,6 +68,7 @@ class _DriverMissionsPageState extends State<DriverMissionsPage> {
     super.initState();
     appLanguage.addListener(_onLangChanged);
     DriverMissionStore.instance.addListener(_onStoreChanged);
+    DriverMissionStore.instance.load();
   }
 
   @override
@@ -140,39 +142,56 @@ class _DriverMissionsPageState extends State<DriverMissionsPage> {
           ),
           const SizedBox(height: 12),
           // Mission list
-          Expanded(
-            child: _currentMissions.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          _selectedTab == 0
-                              ? Icons.local_shipping_outlined
-                              : Icons.verified_outlined,
-                          size: 48,
-                          color: const Color(0xFFDDDDDD),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          _t('No missions', 'لا توجد مهام', 'Aucune mission'),
-                          style: _pop(size: 15, color: const Color(0xFF999999)),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-                    itemCount: _currentMissions.length,
-                    itemBuilder: (context, index) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _buildMissionCard(_currentMissions[index]),
-                    ),
-                  ),
-          ),
+          Expanded(child: _buildMissionList()),
         ],
       ),
+    );
+  }
+
+  Widget _buildMissionList() {
+    final store = DriverMissionStore.instance;
+    return Column(
+      children: [
+        if (store.isDemo) DemoWarningBanner(onRetry: () => store.retry()),
+        Expanded(
+          child: store.isLoading
+              ? const ApiLoadingView(message: 'Loading your missions...')
+              : store.error != null && _currentMissions.isEmpty
+                  ? ApiErrorView(
+                      message: store.error!,
+                      onRetry: () => store.retry(),
+                    )
+                  : _currentMissions.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                _selectedTab == 0
+                                    ? Icons.local_shipping_outlined
+                                    : Icons.verified_outlined,
+                                size: 48,
+                                color: const Color(0xFFDDDDDD),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                _t('No missions', 'لا توجد مهام', 'Aucune mission'),
+                                style: _pop(size: 15, color: const Color(0xFF999999)),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          physics: const BouncingScrollPhysics(),
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+                          itemCount: _currentMissions.length,
+                          itemBuilder: (context, index) => Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _buildMissionCard(_currentMissions[index]),
+                          ),
+                        ),
+        ),
+      ],
     );
   }
 
@@ -624,9 +643,17 @@ class _DriverMissionsPageState extends State<DriverMissionsPage> {
                   if (status == 'Accepted') ...[
                     const SizedBox(height: 20),
                     GestureDetector(
-                      onTap: () {
-                        DriverMissionStore.instance.startMission(m['id']!);
-                        Navigator.pop(context);
+                      onTap: () async {
+                        final ok = await DriverMissionStore.instance
+                            .startMission(m['id']!);
+                        if (!ok) {
+                          final error = DriverMissionStore.instance.error;
+                          if (error != null && context.mounted) {
+                            showApiError(context, error);
+                          }
+                          return;
+                        }
+                        if (context.mounted) Navigator.pop(context);
                       },
                       child: Container(
                         width: double.infinity,
@@ -659,9 +686,17 @@ class _DriverMissionsPageState extends State<DriverMissionsPage> {
                   if (status == 'In Progress') ...[
                     const SizedBox(height: 20),
                     GestureDetector(
-                      onTap: () {
-                        DriverMissionStore.instance.completeMission(m['id']!);
-                        Navigator.pop(context);
+                      onTap: () async {
+                        final ok = await DriverMissionStore.instance
+                            .completeMission(m['id']!);
+                        if (!ok) {
+                          final error = DriverMissionStore.instance.error;
+                          if (error != null && context.mounted) {
+                            showApiError(context, error);
+                          }
+                          return;
+                        }
+                        if (context.mounted) Navigator.pop(context);
                       },
                       child: Container(
                         width: double.infinity,
