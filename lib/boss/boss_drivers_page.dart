@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import '../app_language.dart';
 import '../customer/mission_model.dart';
 import '../customer/mission_repository.dart';
+import '../models/api_models.dart';
 import 'boss_model.dart';
+import 'boss_driver_detail_page.dart';
 import 'boss_repository.dart';
 import 'boss_ui.dart';
-import '../widgets/api_state.dart' hide formatDzd;
 
 /// Drivers tab: the registered carrier list with mission history.
 ///
@@ -45,7 +46,21 @@ class _BossDriversPageState extends State<BossDriversPage> {
     if (mounted) setState(() {});
   }
 
-  List<BossDriver> get _filtered {
+  List<PendingDriver> get _filteredPending {
+    final q = _query.trim().toLowerCase();
+    final pending = BossRepository.instance.pendingDrivers;
+    if (q.isEmpty) return pending;
+    return pending
+        .where(
+          (p) =>
+              p.fullName.toLowerCase().contains(q) ||
+              p.phone.toLowerCase().contains(q) ||
+              p.vehiclePlate.toLowerCase().contains(q),
+        )
+        .toList();
+  }
+
+  List<BossDriver> get _filteredRegistered {
     final q = _query.trim().toLowerCase();
     final drivers = BossRepository.instance.drivers;
     if (q.isEmpty) return drivers;
@@ -58,9 +73,20 @@ class _BossDriversPageState extends State<BossDriversPage> {
         .toList();
   }
 
+  List<Map<String, dynamic>> get _filteredRegisteredEmployees {
+    final q = _query.trim().toLowerCase();
+    final employees = BossRepository.instance.employees;
+    if (q.isEmpty) return employees;
+    return employees.where((e) {
+      final name = (e['full_name'] ?? e['username'] ?? '').toString().toLowerCase();
+      final plate = (e['vehicle_plate'] ?? '').toString().toLowerCase();
+      return name.contains(q) || plate.contains(q);
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final drivers = _filtered;
+    final registered = _filteredRegistered;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -121,18 +147,18 @@ class _BossDriversPageState extends State<BossDriversPage> {
           ),
         ),
         const SizedBox(height: 16),
-        if (BossRepository.instance.isDemo)
-          DemoWarningBanner(onRetry: () => BossRepository.instance.retry()),
         _buildPendingSection(),
         const SizedBox(height: 8),
+        _buildRegisteredSection(),
+        const SizedBox(height: 8),
         Expanded(
-          child: drivers.isEmpty
+          child: registered.isEmpty
               ? _emptyState()
               : ListView.separated(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-                  itemCount: drivers.length,
+                  itemCount: registered.length,
                   separatorBuilder: (_, _) => const SizedBox(height: 12),
-                  itemBuilder: (_, i) => _driverCard(drivers[i], i),
+                  itemBuilder: (_, i) => _driverCard(registered[i], i),
                 ),
         ),
       ],
@@ -140,7 +166,7 @@ class _BossDriversPageState extends State<BossDriversPage> {
   }
 
   Widget _buildPendingSection() {
-    final pending = BossRepository.instance.pendingDrivers;
+    final pending = _filteredPending;
     if (pending.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -202,44 +228,123 @@ class _BossDriversPageState extends State<BossDriversPage> {
                       ),
                     ),
                     GestureDetector(
-                      onTap: () async {
-                        final ok = await BossRepository.instance.approveDriver(p.userId.toString());
-                        if (!mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(ok
-                                ? tr('Driver approved', 'تمت الموافقة على السائق', 'Chauffeur approuvé')
-                                : BossRepository.instance.error ?? tr('Failed', 'فشل', 'Échec')),
-                            backgroundColor: ok ? const Color(0xFF4CAF50) : const Color(0xFFE0533D),
+                      onTap: () {
+                        final id = int.tryParse(p.userId.toString());
+                        if (id == null) return;
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => BossDriverDetailPage(
+                              driverId: id,
+                              driverName: p.fullName,
+                            ),
                           ),
                         );
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF4CAF50).withValues(alpha: 0.12),
+                          color: const Color(0xFFF5F5F5),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
-                          tr('Approve', 'موافقة', 'Approuver'),
-                          style: pop(size: 11, weight: FontWeight.w700, color: const Color(0xFF4CAF50)),
+                          tr('Review', '??????', 'Examiner'),
+                          style: pop(size: 11, weight: FontWeight.w700, color: const Color(0xFF555555)),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 6),
+                  ],
+
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRegisteredSection() {
+    final employees = _filteredRegisteredEmployees;
+    if (employees.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFF4CAF50).withValues(alpha: 0.3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.people_outline, color: Color(0xFF4CAF50), size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  tr('Registered drivers', 'السائقون المسجلون', 'Chauffeurs enregistrés'),
+                  style: pop(size: 14, weight: FontWeight.w700, color: const Color(0xFF111111)),
+                ),
+                const Spacer(),
+                Text(
+                  '${employees.length}',
+                  style: pop(size: 13, weight: FontWeight.w700, color: const Color(0xFF4CAF50)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            ...employees.map((e) {
+              final name = (e['full_name'] ?? e['username'] ?? 'Driver').toString();
+              final id = (e['id'] ?? '').toString();
+              return Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 16,
+                      backgroundColor: const Color(0xFFE8F5E9),
+                      child: Text(
+                        name.isEmpty ? '?' : name.substring(0, 1).toUpperCase(),
+                        style: pop(size: 12, weight: FontWeight.w700, color: const Color(0xFF4CAF50)),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          final id = int.tryParse((e['id'] ?? '').toString());
+                          if (id == null) return;
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => BossDriverDetailPage(
+                                driverId: id,
+                                driverName: name,
+                              ),
+                            ),
+                          );
+                        },
+                        child: Text(
+                          name,
+                          style: pop(size: 12, weight: FontWeight.w600, color: const Color(0xFF222222)),
+                        ),
+                      ),
+                    ),
                     GestureDetector(
                       onTap: () async {
-                        final ok = await BossRepository.instance.rejectDriver(
-                          p.userId.toString(),
-                          tr('Rejected by admin', 'مرفوض من الإدارة', 'Refusé par l\'administrateur'),
-                        );
+                        final ok = await BossRepository.instance.removeEmployee(id);
                         if (!mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(ok
-                                ? tr('Driver rejected', 'تم رفض السائق', 'Chauffeur refusé')
-                                : BossRepository.instance.error ?? tr('Failed', 'فشل', 'Échec')),
-                            backgroundColor: ok ? const Color(0xFFE0533D) : const Color(0xFF999999),
+                                ? tr('Driver removed', 'تم حذف السائق', 'Chauffeur supprimé')
+                                : (BossRepository.instance.error ??
+                                    tr('Failed', 'فشل', 'Échec'))),
+                            backgroundColor: ok
+                                ? const Color(0xFF4CAF50)
+                                : const Color(0xFFE0533D),
                           ),
                         );
                       },
@@ -250,15 +355,15 @@ class _BossDriversPageState extends State<BossDriversPage> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
-                          tr('Reject', 'رفض', 'Refuser'),
+                          tr('Remove', 'حذف', 'Supprimer'),
                           style: pop(size: 11, weight: FontWeight.w700, color: const Color(0xFFE0533D)),
                         ),
                       ),
                     ),
                   ],
                 ),
-              ),
-            ),
+              );
+            }),
           ],
         ),
       ),

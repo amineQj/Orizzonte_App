@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app_language.dart';
+import 'models/api_models.dart';
 import 'negotiation/negotiation_page.dart';
+import 'services/api_service.dart';
+import 'services/driver_mission_filters.dart';
 import 'services/driver_mission_store.dart';
 import 'widgets/api_state.dart';
 import 'verification_flow_screen.dart';
@@ -53,7 +56,21 @@ class DriverHomePage extends StatefulWidget {
 }
 
 class _DriverHomePageState extends State<DriverHomePage> {
+  final ApiService _api = ApiService();
   int _verified = 0;
+
+  // Backed by GET /api/drivers/me/profile/ — the backend refuses mission
+  // acceptance with `driver_not_approved` until this status is `approved`.
+  String? _profileStatus;
+  String? _profileReason;
+  bool _profileLoading = true;
+  String? _profileError;
+  String? _acceptingId;
+  String? _acceptError;
+  Map<String, String>? _acceptErrorMission;
+  DriverMissionFilters _filters = const DriverMissionFilters();
+
+  bool get _isApproved => _profileStatus == 'approved';
 
   String get _lang => appLanguage.lang;
   bool get _isArabic => _lang == 'AR';
@@ -70,6 +87,34 @@ class _DriverHomePageState extends State<DriverHomePage> {
     appLanguage.addListener(_onLangChanged);
     DriverMissionStore.instance.addListener(_onStoreChanged);
     DriverMissionStore.instance.load();
+    _loadProfile();
+  }
+
+  /// Loads the live approval status so the UI can explain *why* acceptance is
+  /// blocked instead of surfacing a bare 403 from the API.
+  Future<void> _loadProfile() async {
+    if (!mounted) return;
+    setState(() {
+      _profileLoading = true;
+      _profileError = null;
+    });
+    try {
+      final profile = await _api.getDriverProfile();
+      if (!mounted) return;
+      setState(() {
+        _profileStatus = profile.status;
+        _profileReason = profile.rejectionReason;
+        _profileLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        // Keep the local verification banner as a fallback; the accept handler
+        // still guards with the backend error if the profile cannot be read.
+        _profileError = apiErrorMessage(e);
+        _profileLoading = false;
+      });
+    }
   }
 
   @override
@@ -87,27 +132,182 @@ class _DriverHomePageState extends State<DriverHomePage> {
     setState(() {});
   }
 
-  List<Map<String, String>> get _available => DriverMissionStore
-      .instance
-      .availableMissions
-      .map((m) => m.toMap())
-      .toList();
+  List<Map<String, String>> get _available => _filters.apply(
+        DriverMissionStore.instance.availableMissions
+            .map((m) => m.toMap())
+            .toList(),
+      );
+
+  /// Explicit confirmation before a one-way mission acceptance (M22).
+  Future<bool> _confirmAccept(Map<String, String> m) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          _t('Accept this mission?', 'قبول هذه المهمة؟', 'Accepter cette mission ?'),
+          style: _pop(size: 16, weight: FontWeight.w700,
+              color: const Color(0xFF111111)),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _confirmRow(_t('Client', 'العميل', 'Client'), m['client'] ?? ''),
+            _confirmRow(_t('Pickup', 'الالتقاط', 'Départ'), m['from'] ?? ''),
+            _confirmRow(_t('Drop-off', 'التسليم', 'Arrivée'), m['to'] ?? ''),
+            _confirmRow(_t('Distance', 'المسافة', 'Distance'), m['dist'] ?? ''),
+            _confirmRow(_t('Price', 'السعر', 'Prix'), m['price'] ?? ''),
+            const SizedBox(height: 6),
+            Text(
+              _t('You will be assigned to this mission. The backend remains authoritative.',
+                  'سيتم تعيينك لهذه المهمة. الخادم هو المرجع النهائي.',
+                  'Vous serez assigné à cette mission. Le serveur reste autoritatif.'),
+              style: _pop(size: 11, color: const Color(0xFF888888)),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(_t('Cancel', 'إلغاء', 'Annuler'),
+                style: _pop(size: 13, color: const Color(0xFF777777))),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(_t('Accept', 'قبول', 'Accepter'),
+                style: _pop(size: 13, weight: FontWeight.w700,
+                    color: const Color(0xFFF5A524))),
+          ),
+        ],
+      ),
+    );
+    return confirmed ?? false;
+  }
+
+  Widget _confirmRow(String label, String value) => Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: RichText(
+          text: TextSpan(
+            style: _pop(size: 12, color: const Color(0xFF444444)),
+            children: [
+              TextSpan(
+                text: '$label: ',
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              TextSpan(text: value),
+            ],
+          ),
+        ),
+      );
+
+  /// POST /api/missions/{id}/accept/ through the store, with an explicit
+  /// approval guard, per-mission loading state, exact backend errors and a
+  /// backend refresh so the mission disappears from "Available" immediately.
+  Future<void> _accept(Map<String, String> m) async {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final id = m['id'] ?? '';
+    final missionId = int.tryParse(id);
+    if (missionId == null) {
+      final message = _t(
+        'Demo mission — sign in to accept real missions.',
+        'مهمة تجريبية — سجّل الدخول لقبول مهام حقيقية.',
+        'Mission de démonstration — connectez-vous pour accepter.',
+      );
+      if (!context.mounted) return;
+      setState(() => _acceptError = message);
+      showApiError(context, message);
+      return;
+    }
+    if (!_isApproved) {
+      final status = _profileStatus ?? 'incomplete';
+      final message = _t(
+        'Your profile is not approved yet (status: $status). '
+        'Complete verification and wait for the boss to approve it.',
+        'لم تتم الموافقة على ملفك بعد (الحالة: $status). '
+        'أكمل التحقق وانتظر موافقة المدير.',
+        'Votre profil n\'est pas encore approuvé (statut : $status). '
+        'Terminez la vérification et attendez l\'approbation.',
+      );
+      if (!context.mounted) return;
+      setState(() => _acceptError = message);
+      showApiError(context, message);
+      return;
+    }
+    if (!mounted) return;
+    if (!await _confirmAccept(m)) return;
+    if (!mounted) return;
+    setState(() {
+      _acceptingId = id;
+      _acceptError = null;
+      _acceptErrorMission = null;
+    });
+    final ok = await DriverMissionStore.instance.acceptMission(id);
+    if (!context.mounted) return;
+    if (!ok) {
+      final message = DriverMissionStore.instance.error ??
+          _t('Could not accept the mission.', 'تعذر قبول المهمة.', 'Impossible d\'accepter la mission.');
+      if (messenger != null) showApiErrorWithMessenger(messenger, message);
+      setState(() {
+        _acceptingId = null;
+        _acceptError = message;
+        _acceptErrorMission = m;
+      });
+      return;
+    }
+    setState(() => _acceptingId = null);
+    // Re-fetch available + my missions so both lists are consistent.
+    await DriverMissionStore.instance.load();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(_t('Mission accepted. Find it in My Missions.',
+            'تم قبول المهمة. تجدها في مهامي.', 'Mission acceptée. Retrouvez-la dans Mes missions.')),
+        backgroundColor: const Color(0xFF4CAF50),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
+    return RefreshIndicator(
+      color: const Color(0xFFF5A524),
+      onRefresh: () async {
+        await Future.wait([
+          DriverMissionStore.instance.load(),
+          _loadProfile(),
+        ]);
+      },
+      child: SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (_verified == 0) ...[
+          if (_profileLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: LinearProgressIndicator(
+                minHeight: 2,
+                color: Color(0xFFF5A524),
+              ),
+            ),
+          if (_profileStatus != null && !_isApproved) ...[
+            _buildApprovalBanner(),
+            const SizedBox(height: 16),
+          ] else if (_profileStatus == null && _verified == 0) ...[
             _buildVerifyBanner(),
             const SizedBox(height: 16),
-          ],
-          if (_verified == 1) ...[
+          ] else if (_profileStatus == null && _verified == 1) ...[
             _buildReviewBanner(),
             const SizedBox(height: 16),
+          ],
+          if (_profileError != null) ...[
+            _buildProfileErrorBanner(),
+            const SizedBox(height: 12),
           ],
           _buildQuickStats(),
           const SizedBox(height: 20),
@@ -150,10 +350,12 @@ class _DriverHomePageState extends State<DriverHomePage> {
                           width: 1,
                         ),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.tune,
                         size: 16,
-                        color: Color(0xFF999999),
+                        color: _filters.isActive
+                            ? const Color(0xFFF5A524)
+                            : const Color(0xFF999999),
                       ),
                     ),
                   ),
@@ -165,6 +367,7 @@ class _DriverHomePageState extends State<DriverHomePage> {
           _buildMissionList(),
         ],
       ),
+      ),
     );
   }
 
@@ -173,7 +376,39 @@ class _DriverHomePageState extends State<DriverHomePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (store.isDemo) DemoWarningBanner(onRetry: () => store.retry()),
+        if (_acceptError != null)
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFEBEE),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFEF9A9A)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.error_outline, size: 18, color: Color(0xFFE0533D)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _acceptError!,
+                    style: _pop(size: 11, color: const Color(0xFFB71C1C)),
+                  ),
+                ),
+                if (_acceptErrorMission != null && _isApproved)
+                  GestureDetector(
+                    onTap: _acceptingId != null
+                        ? null
+                        : () => _accept(_acceptErrorMission!),
+                    child: Text(
+                      _t('Retry', 'إعادة المحاولة', 'Réessayer'),
+                      style: _pop(size: 11, weight: FontWeight.w700,
+                          color: const Color(0xFFE0533D)),
+                    ),
+                  ),
+              ],
+            ),
+          ),
         if (store.isLoading)
           const SizedBox(
             height: 180,
@@ -213,6 +448,99 @@ class _DriverHomePageState extends State<DriverHomePage> {
       ],
     );
   }
+
+  /// Explains the live backend approval state and offers a path to fix it.
+  Widget _buildApprovalBanner() {
+    final rejected = _profileStatus == 'rejected';
+    final title = rejected
+        ? _t('Profile rejected', 'تم رفض الملف', 'Profil refusé')
+        : _profileStatus == 'pending_review'
+            ? _t('Documents under review', 'المستندات قيد المراجعة', 'Documents en révision')
+            : _t('Verify your account', 'وثّق حسابك', 'Vérifiez votre compte');
+    final body = rejected
+        ? (_profileReason ?? '').isNotEmpty
+            ? '${_t('Reason', 'السبب', 'Motif')}: $_profileReason'
+            : _t('Update your documents and resubmit.', 'حدّث مستنداتك وأعد الإرسال.', 'Mettez à jour vos documents et soumettez à nouveau.')
+        : _t('Your profile is not approved yet. Complete verification and wait for the boss before accepting missions.',
+            'لم تتم الموافقة على ملفك بعد. أكمل التحقق وانتظر المدير قبل قبول المهام.',
+            'Votre profil n\'est pas encore approuvé. Terminez la vérification et attendez le patron avant d\'accepter des missions.');
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: rejected ? const Color(0xFFFFEBEE) : const Color(0xFFFFF7E6),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: rejected ? const Color(0xFFEF9A9A) : const Color(0xFFF5C86A),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                rejected ? Icons.error_outline : Icons.hourglass_top,
+                size: 18,
+                color: rejected ? const Color(0xFFE0533D) : const Color(0xFFB87600),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(title,
+                    style: _pop(size: 13, weight: FontWeight.w700,
+                        color: const Color(0xFF222222))),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(body, style: _pop(size: 11, color: const Color(0xFF666666))),
+          const SizedBox(height: 10),
+          GestureDetector(
+            onTap: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const VerificationFlowScreen(),
+                ),
+              );
+              if (result == true && mounted) setState(() => _verified = 1);
+              await _loadProfile();
+            },
+            child: Text(
+              _t('Open verification', 'فتح التحقق', 'Ouvrir la vérification'),
+              style: _pop(size: 12, weight: FontWeight.w700,
+                  color: const Color(0xFFF5A524)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileErrorBanner() => Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFEBEE),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.cloud_off, size: 16, color: Color(0xFFE0533D)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                '${_t('Could not load approval status', 'تعذر تحميل حالة الموافقة', 'Statut indisponible')}: $_profileError',
+                style: _pop(size: 11, color: const Color(0xFFB71C1C)),
+              ),
+            ),
+            GestureDetector(
+              onTap: _loadProfile,
+              child: Text(_t('Retry', 'إعادة', 'Réessayer'),
+                  style: _pop(size: 11, weight: FontWeight.w700,
+                      color: const Color(0xFFE0533D))),
+            ),
+          ],
+        ),
+      );
 
   Widget _buildVerifyBanner() {
     return Container(
@@ -465,9 +793,8 @@ class _DriverHomePageState extends State<DriverHomePage> {
   Widget _buildProfessionalCard(Map<String, String> m) {
     final img = _truckImage(m['truck']!, m['size']!);
     final isSvg = img.endsWith('.svg');
-    return GestureDetector(
-      onTap: () {},
-      child: Container(
+    // No dead tap target: the only actions are the explicit buttons below.
+    return Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -635,7 +962,7 @@ class _DriverHomePageState extends State<DriverHomePage> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => NegotiationPage(missionId: id),
+                      builder: (_) => NegotiationPage(missionId: id, role: 'driver'),
                     ),
                   );
                 },
@@ -660,19 +987,18 @@ class _DriverHomePageState extends State<DriverHomePage> {
               ),
             ],
             const SizedBox(height: 10),
-            // Row 3: action button
+            // Row 3: action button — guarded by live approval status.
             GestureDetector(
-              onTap: () async {
-                final ok = await DriverMissionStore.instance.acceptMission(m['id']!);
-                if (!mounted) return;
-                final error = DriverMissionStore.instance.error;
-                if (!ok && error != null) showApiError(context, error);
-              },
+              onTap: _acceptingId != null ? null : () => _accept(m),
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 11),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF5A524),
+                  color: _acceptingId == m['id']
+                      ? const Color(0xFFE0A93B)
+                      : _isApproved
+                          ? const Color(0xFFF5A524)
+                          : const Color(0xFFCCCCCC),
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
@@ -682,21 +1008,40 @@ class _DriverHomePageState extends State<DriverHomePage> {
                     ),
                   ],
                 ),
-                child: Text(
-                  _t('Accept Mission', 'قبول المهمة', 'Accepter la mission'),
-                  textAlign: TextAlign.center,
-                  style: _pop(
-                    size: 12,
-                    weight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
+                child: _acceptingId == m['id']
+                    ? Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _t('Accepting...', 'جارٍ القبول...', 'Acceptation...'),
+                            style: _pop(size: 12, weight: FontWeight.w700,
+                                color: Colors.white),
+                          ),
+                        ],
+                      )
+                    : Text(
+                        _t('Accept Mission', 'قبول المهمة', 'Accepter la mission'),
+                        textAlign: TextAlign.center,
+                        style: _pop(
+                          size: 12,
+                          weight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
               ),
             ),
           ],
         ),
-      ),
-    );
+      );
   }
 
   Widget _metaChip(IconData icon, String text) {
@@ -710,13 +1055,13 @@ class _DriverHomePageState extends State<DriverHomePage> {
     );
   }
 
-  void _showFilterPage() {
-    String vehicleType = 'All';
-    String priceRange = 'All';
-    String distanceRange = 'All';
-    String sortBy = 'Date';
+  Future<void> _showFilterPage() async {
+    String vehicleType = _filters.vehicleType;
+    String priceRange = _filters.priceRange;
+    String distanceRange = _filters.distanceRange;
+    String sortBy = _filters.sortBy;
 
-    showModalBottomSheet(
+    final applied = await showModalBottomSheet<DriverMissionFilters>(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
@@ -956,7 +1301,15 @@ class _DriverHomePageState extends State<DriverHomePage> {
                   ),
                   const SizedBox(height: 24),
                   GestureDetector(
-                    onTap: () => Navigator.pop(context),
+                    onTap: () => Navigator.pop(
+                      context,
+                      DriverMissionFilters(
+                        vehicleType: vehicleType,
+                        priceRange: priceRange,
+                        distanceRange: distanceRange,
+                        sortBy: sortBy,
+                      ),
+                    ),
                     child: Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 14),
@@ -991,6 +1344,9 @@ class _DriverHomePageState extends State<DriverHomePage> {
         );
       },
     );
+    if (applied != null && mounted) {
+      setState(() => _filters = applied);
+    }
   }
 
   Widget _filterSectionTitle(String title) {

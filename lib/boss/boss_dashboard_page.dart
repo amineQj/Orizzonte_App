@@ -41,23 +41,53 @@ class _BossDashboardPageState extends State<BossDashboardPage> {
     if (mounted) setState(() {});
   }
 
+  /// Reads the live `GET /api/missions/dashboard/` payload fetched by
+  /// [BossRepository]. Where the backend does not expose a counter (pending /
+  /// in-progress), it is derived from the live `/api/missions/all/` list.
+  ({int total, int completed, int active, int pending, double revenue, double percentage, int today}) _stats(
+      List<dynamic> missions) {
+    final server = BossRepository.instance.stats;
+    int derive(String key, int fallback) {
+      final value = server[key];
+      if (value is num) return value.toInt();
+      if (value is String) return int.tryParse(value) ?? fallback;
+      return fallback;
+    }
+    final revenueRaw = server['monthly_revenue'];
+    final revenue = revenueRaw is num
+        ? revenueRaw.toDouble()
+        : parseDzd(revenueRaw?.toString() ?? '0');
+    final percentRaw = server['completion_percentage'];
+    final percentage = percentRaw is num
+        ? percentRaw.toDouble()
+        : double.tryParse(percentRaw?.toString() ?? '0') ?? 0;
+    final activeCount = missions
+        .where((m) =>
+            m.status == MissionStatus.accepted ||
+            m.status == MissionStatus.inProgress)
+        .length;
+    final pendingCount =
+        missions.where((m) => m.status == MissionStatus.pending).length;
+    return (
+      total: derive('total_missions_month', missions.length),
+      completed: derive('completed_missions',
+          missions.where((m) => m.status == MissionStatus.completed).length),
+      active: activeCount,
+      pending: pendingCount,
+      revenue: revenue,
+      percentage: percentage,
+      today: derive('today_missions', 0),
+    );
+  }
+
+  Future<void> _refresh() async {
+    await BossRepository.instance.retry();
+  }
+
   @override
   Widget build(BuildContext context) {
     final missions = MissionRepository.instance.missions;
-    final total = missions.length;
-    final completed = missions
-        .where((m) => m.status == MissionStatus.completed)
-        .length;
-    final active = missions
-        .where(
-          (m) =>
-              m.status == MissionStatus.accepted ||
-              m.status == MissionStatus.inProgress,
-        )
-        .length;
-    final revenue = missions
-        .where((m) => m.status != MissionStatus.cancelled)
-        .fold<double>(0, (sum, m) => sum + parseDzd(m.order.estimatedPrice));
+    final stats = _stats(missions);
 
     if (BossRepository.instance.isLoading && missions.isEmpty) {
       return const ApiLoadingView(message: 'Loading dashboard...');
@@ -69,16 +99,15 @@ class _BossDashboardPageState extends State<BossDashboardPage> {
       );
     }
 
-    return SingleChildScrollView(
+    return RefreshIndicator(
+      color: const Color(0xFFF5A524),
+      onRefresh: _refresh,
+      child: SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (BossRepository.instance.isDemo)
-            DemoWarningBanner(
-              onRetry: () => BossRepository.instance.retry(),
-            ),
           Row(
             children: [
               Expanded(
@@ -109,10 +138,32 @@ class _BossDashboardPageState extends State<BossDashboardPage> {
                   ],
                 ),
               ),
+              IconButton(
+                tooltip: tr('Refresh stats', 'تحديث الإحصاءات', 'Actualiser'),
+                icon: BossRepository.instance.isLoading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Color(0xFFF5A524),
+                        ),
+                      )
+                    : const Icon(Icons.refresh, color: Color(0xFFF5A524)),
+                onPressed: BossRepository.instance.isLoading ? null : _refresh,
+              ),
             ],
           ),
           const SizedBox(height: 16),
-          _statsGrid(total, completed, active, revenue),
+          _statsGrid(stats.total, stats.completed, stats.active, stats.revenue),
+          const SizedBox(height: 8),
+          Text(
+            '${tr('Completion', 'نسبة الإنجاز', 'Achèvement')}: '
+            '${stats.percentage.toStringAsFixed(1)}%'
+            '    •    ${tr('Today', 'اليوم', 'Aujourd\'hui')}: ${stats.today}'
+            '    •    ${tr('Pending', 'قيد الانتظار', 'En attente')}: ${stats.pending}',
+            style: pop(size: 11, color: const Color(0xFF999999)),
+          ),
           const SizedBox(height: 24),
           Row(
             children: [
@@ -152,6 +203,7 @@ class _BossDashboardPageState extends State<BossDashboardPage> {
                   ),
                 ),
         ],
+      ),
       ),
     );
   }

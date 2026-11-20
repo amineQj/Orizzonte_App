@@ -37,6 +37,22 @@ class _CustomerShellState extends State<CustomerShell> {
 
   String get _lang => appLanguage.lang;
 
+  @override
+  void initState() {
+    super.initState();
+    appLanguage.addListener(_onLangChanged);
+  }
+
+  @override
+  void dispose() {
+    appLanguage.removeListener(_onLangChanged);
+    super.dispose();
+  }
+
+  void _onLangChanged() {
+    if (mounted) setState(() {});
+  }
+
   String _t(String en, String ar, String fr) {
     if (_lang == 'AR') return ar;
     if (_lang == 'FR') return fr;
@@ -49,7 +65,7 @@ class _CustomerShellState extends State<CustomerShell> {
     final pages = const [CustomerHomePage(), CustomerProfilePage()];
 
     return Directionality(
-      textDirection: TextDirection.ltr,
+      textDirection: appLanguage.isRtl ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: Colors.white,
         body: Column(

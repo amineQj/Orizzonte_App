@@ -315,7 +315,7 @@ const _capacities = <String, List<String>>{
   'commercial': ['1T', '2T'],
   'benne': ['12.5T', '15T', '22T', '30T'],
   'eau': ['6000L', '10000L', '12000L', '18000L'],
-  'carburant': ['18000L', '240000L', '270000L', '300000L'],
+  'carburant': ['18000L', '24000L', '27000L', '30000L'],
   'contenaire': ['10T', '15T', '20T'],
   'ridelle': ['10T', '15T', '20T'],
   'plateux': ['10T', '15T', '20T'],
@@ -326,7 +326,6 @@ enum _Step { truckType, subCategory, bodyType, capacity }
 enum _TowingStep {
   truckType,
   depannageSubCategory,
-  depannageCapacity,
   dimensions,
 }
 
@@ -639,13 +638,6 @@ class _OrderFlowState extends State<OrderFlow> {
               _towingStep = _TowingStep.truckType;
               _selectedTruckType = null;
             });
-          } else if (_towingStep == _TowingStep.depannageCapacity) {
-            setState(() {
-              _towingStep = _TowingStep.depannageSubCategory;
-              _selectedDepannageType = null;
-              _data.weight = '';
-              _data.truckModel = '';
-            });
           } else {
             widget.onBack();
           }
@@ -731,8 +723,6 @@ class _OrderFlowState extends State<OrderFlow> {
         return _buildTowingTruckTypeGrid();
       case _TowingStep.depannageSubCategory:
         return _buildDepannageSubCategory();
-      case _TowingStep.depannageCapacity:
-        return _buildDepannageCapacity();
       case _TowingStep.dimensions:
         return _buildPorteChareDimensions();
     }
@@ -1115,10 +1105,6 @@ class _OrderFlowState extends State<OrderFlow> {
         ),
       ],
     );
-  }
-
-  Widget _buildDepannageCapacity() {
-    return const SizedBox.shrink();
   }
 
   Widget _buildPorteChareDimensions() {

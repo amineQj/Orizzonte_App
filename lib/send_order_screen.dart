@@ -116,9 +116,21 @@ class _SendOrderScreenState extends State<SendOrderScreen> {
         builder: (_) => OrderConfirmationScreen(
           orderData: widget.orderData,
           onBack: () => Navigator.pop(context),
-          onRouteEdit: () { Navigator.pop(context); },
-          onVehicleEdit: () { Navigator.popUntil(context, (route) => route.isFirst); },
-          onTimeEdit: () { Navigator.pop(context); },
+          onRouteEdit: () {
+            // Confirmation -> SendOrder -> RouteTime
+            Navigator.pop(context);
+            Navigator.pop(context);
+          },
+          onVehicleEdit: () {
+            // Confirmation -> SendOrder -> RouteTime -> OrderFlow
+            Navigator.pop(context);
+            Navigator.pop(context);
+            Navigator.pop(context);
+          },
+          onTimeEdit: () {
+            Navigator.pop(context);
+            Navigator.pop(context);
+          },
           onConfirmDone: () {
             widget.onMissionConfirmed?.call(widget.orderData);
             Navigator.of(context).popUntil(
@@ -420,7 +432,7 @@ class _SendOrderScreenState extends State<SendOrderScreen> {
         Row(children: [
           SvgPicture.asset('assets/images/linephone.svg', width: 16, height: 16),
           const SizedBox(width: 6),
-          Text(_t('Enter your namber', 'أدخل رقمك', 'Entrez votre numéro'),
+          Text(_t('Enter your number', 'أدخل رقمك', 'Entrez votre numéro'),
             style: _pop(size: 13, weight: FontWeight.w600, color: const Color(0xFF555555))),
         ]),
         const SizedBox(height: 8),

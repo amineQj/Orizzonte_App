@@ -1,1 +1,2 @@
 #include "Generated.xcconfig"
+INFOPLIST_FILE = Runner/Info-Debug.plist

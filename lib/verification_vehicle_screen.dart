@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'app_language.dart';
+import 'services/document_verification_service.dart';
+import 'widgets/document_submission.dart';
 
 TextStyle _pop({double? size, FontWeight? weight, Color? color, double? height, double? letterSpacing}) {
   return GoogleFonts.poppins(fontSize: size, fontWeight: weight, color: color, height: height, letterSpacing: letterSpacing);
@@ -23,7 +25,11 @@ class _VerificationVehicleScreenState extends State<VerificationVehicleScreen> {
   // XFile.path fails on Flutter Web ("Failed to process image").
   Uint8List? _frontImage;
   Uint8List? _backImage;
+  Uint8List? _licenseImage;
+  String _frontName = 'vehicle_registration.jpg';
+  String _licenseName = 'driving_license.jpg';
   bool _processing = false;
+  String? _status;
 
   String get _lang => appLanguage.lang;
   bool get _isArabic => _lang == 'AR';
@@ -39,6 +45,9 @@ class _VerificationVehicleScreenState extends State<VerificationVehicleScreen> {
     final picked = await picker.pickImage(source: ImageSource.camera, preferredCameraDevice: CameraDevice.rear);
     if (picked != null) {
       final bytes = await picked.readAsBytes();
+      if (isFront) {
+        _frontName = picked.name;
+      }
       final error = await _validateImage(bytes);
       if (!mounted) return;
       if (error != null) {
@@ -47,6 +56,25 @@ class _VerificationVehicleScreenState extends State<VerificationVehicleScreen> {
       }
       _showPreview(bytes, isFront);
     }
+  }
+
+  /// The backend requires a separate `driving_license` slot in addition to the
+  /// two sides of the vehicle registration card.
+  Future<void> _pickLicense() async {
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.camera,
+      preferredCameraDevice: CameraDevice.rear,
+    );
+    if (picked == null) return;
+    final bytes = await picked.readAsBytes();
+    _licenseName = picked.name;
+    final error = await _validateImage(bytes);
+    if (!mounted) return;
+    if (error != null) {
+      _showRejectionDialog(error);
+      return;
+    }
+    _showPreview(bytes, false, isLicense: true);
   }
 
   Future<String?> _validateImage(Uint8List bytes) async {
@@ -143,7 +171,7 @@ class _VerificationVehicleScreenState extends State<VerificationVehicleScreen> {
     );
   }
 
-  void _showPreview(Uint8List image, bool isFront) {
+  void _showPreview(Uint8List image, bool isFront, {bool isLicense = false}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -208,8 +236,13 @@ class _VerificationVehicleScreenState extends State<VerificationVehicleScreen> {
                         onTap: () {
                           Navigator.pop(ctx);
                           setState(() {
-                            if (isFront) { _frontImage = image; }
-                            else { _backImage = image; }
+                            if (isLicense) {
+                              _licenseImage = image;
+                            } else if (isFront) {
+                              _frontImage = image;
+                            } else {
+                              _backImage = image;
+                            }
                           });
                         },
                         child: Container(
@@ -234,20 +267,48 @@ class _VerificationVehicleScreenState extends State<VerificationVehicleScreen> {
     );
   }
 
-  void _onSubmit() {
-    if (_frontImage == null || _backImage == null) return;
-    setState(() => _processing = true);
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        setState(() => _processing = false);
-        widget.onComplete();
-      }
+  Future<void> _onSubmit() async {
+    if (_processing ||
+        _frontImage == null ||
+        _backImage == null ||
+        _licenseImage == null) {
+      return;
+    }
+    setState(() {
+      _processing = true;
+      _status = null;
     });
+
+    final passed = await submitCapturedDocuments(
+      context: context,
+      documents: {
+        'vehicle_registration': CapturedDocument(
+          bytes: _frontImage!,
+          filename: _frontName,
+        ),
+        'driving_license': CapturedDocument(
+          bytes: _licenseImage!,
+          filename: _licenseName,
+        ),
+      },
+      onProgress: (phase) {
+        if (mounted) setState(() => _status = phase);
+      },
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _processing = false;
+      _status = null;
+    });
+    if (passed) widget.onComplete();
   }
 
   @override
   Widget build(BuildContext context) {
-    final bothUploaded = _frontImage != null && _backImage != null;
+    final bothUploaded = _frontImage != null &&
+        _backImage != null &&
+        _licenseImage != null;
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
       child: Column(
@@ -268,7 +329,7 @@ class _VerificationVehicleScreenState extends State<VerificationVehicleScreen> {
           const SizedBox(height: 8),
           Center(
             child: Text(
-              _t('Scan both sides of your vehicle registration card', 'مسح картتي تسجيل المركبة من كلا الوجهين', 'Scannez les deux faces de la carte grise'),
+              _t('Scan both sides of your vehicle registration card and your driving license', 'امسح وجهي بطاقة تسجيل المركبة ورخصة القيادة', 'Scannez les deux faces de la carte grise et votre permis de conduire'),
               textAlign: TextAlign.center,
               style: _pop(size: 13, color: const Color(0xFF999999), height: 1.5),
             ),
@@ -286,6 +347,13 @@ class _VerificationVehicleScreenState extends State<VerificationVehicleScreen> {
             image: _backImage,
             icon: Icons.description,
             onTap: () => _pickImage(false),
+          ),
+          const SizedBox(height: 16),
+          _buildScanCard(
+            label: _t('Driving License', 'رخصة القيادة', 'Permis de conduire'),
+            image: _licenseImage,
+            icon: Icons.card_membership_outlined,
+            onTap: _pickLicense,
           ),
           const SizedBox(height: 24),
           Container(
@@ -320,9 +388,20 @@ class _VerificationVehicleScreenState extends State<VerificationVehicleScreen> {
               ),
               child: Center(
                 child: _processing
-                  ? const SizedBox(
-                      width: 22, height: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                  ? Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(
+                          width: 22, height: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                        ),
+                        if (_status != null) ...[
+                          const SizedBox(height: 8),
+                          Text(_status!,
+                              textAlign: TextAlign.center,
+                              style: _pop(size: 11, color: Colors.white)),
+                        ],
+                      ],
                     )
                   : Text(_t('Complete Verification', 'إكمال التحقق', 'Terminer la vérification'),
                       style: _pop(size: 14, weight: FontWeight.w700, color: Colors.white)),

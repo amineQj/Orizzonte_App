@@ -6,7 +6,6 @@ import '../customer_screen.dart';
 import 'mission_model.dart';
 import 'mission_repository.dart';
 import 'customer_mission_details_page.dart';
-import '../widgets/api_state.dart';
 
 TextStyle _pop({
   double? size,
@@ -106,8 +105,6 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
               style: _pop(size: 12, color: const Color(0xFF999999)),
             ),
             const SizedBox(height: 16),
-            if (repo.isDemo)
-              DemoWarningBanner(onRetry: () => repo.retry()),
             if (missions.isEmpty)
               _buildEmptyState()
             else

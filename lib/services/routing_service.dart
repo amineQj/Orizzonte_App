@@ -52,14 +52,17 @@ class RoutingService {
     required LatLng start,
     required LatLng end,
     Duration timeout = const Duration(seconds: 8),
+    http.Client? client,
   }) async {
+    final httpClient = client ?? http.Client();
+    final ownsClient = client == null;
     try {
       // OSRM expects coordinates in {lon},{lat} order
       final url = Uri.parse(
         '$_osrmBaseUrl/${start.longitude},${start.latitude};${end.longitude},${end.latitude}?overview=full&geometries=geojson',
       );
 
-      final response = await http.get(
+      final response = await httpClient.get(
         url,
         headers: {'User-Agent': 'OrizzonteApp/1.0'},
       ).timeout(timeout);
@@ -100,6 +103,8 @@ class RoutingService {
       }
     } catch (_) {
       // Gracefully fall back to straight line on timeout or connection error
+    } finally {
+      if (ownsClient) httpClient.close();
     }
 
     final fallbackDist = haversineDistance(start, end);

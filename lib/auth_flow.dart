@@ -11,7 +11,6 @@ const Map<String, String> _t = {
   'email': 'Email Address',
   'password': 'Password',
   'rememberMe': 'Remember me',
-  'forgot': 'Forgot Password?',
   'loginBtn': 'Sign In',
   'noAccount': "Don't have an account?",
   'signUpLink': 'Sign Up',
@@ -26,21 +25,13 @@ const Map<String, String> _t = {
   'createBtn': 'Create Account',
   'hasAccount': 'Already have an account?',
   'loginLink': 'Sign In',
-  'otpTitle': 'Verify Your Number',
-  'otpSub': "We've sent a 6-digit code to your phone number.",
-  'verifyBtn': 'Verify',
-  'resend': 'Resend Code',
-  'resendIn': 'Resend in',
-  'forgotTitle': 'Reset Password',
-  'forgotSub':
-      'Enter your email or phone number and we will send you a reset code.',
-  'emailOrPhone': 'Email or Phone Number',
-  'continueBtn': 'Continue',
-  'resetTitle': 'New Password',
-  'resetSub': 'Create a strong password for your account.',
-  'newPw': 'New Password',
-  'confirmNewPw': 'Confirm Password',
-  'resetBtn': 'Reset Password',
+  'checkEmailTitle': 'Check your email',
+  'checkEmailSub': 'We sent a verification link to',
+  'checkEmailHelp':
+      'Open the link in your inbox to verify your address, then sign in.',
+  'verifiedBtn': "I've verified, sign in",
+  'resend': 'Resend link',
+  'resendIn': 'Resend link in',
   'backToLogin': 'Back to Sign In',
   'pwWeak': 'Weak',
   'pwFair': 'Fair',
@@ -50,7 +41,6 @@ const Map<String, String> _t = {
   'fieldRequired': 'This field is required',
   'invalidEmail': 'Enter a valid email address',
   'invalidPhone': 'Enter a valid phone number',
-  'otpWrong': 'Incorrect code. Please try again.',
   's': 's',
   // FR
   'fr_login': 'Bon Retour',
@@ -58,7 +48,6 @@ const Map<String, String> _t = {
   'fr_email': 'Adresse e-mail',
   'fr_password': 'Mot de passe',
   'fr_rememberMe': 'Se souvenir de moi',
-  'fr_forgot': 'Mot de passe oublié ?',
   'fr_loginBtn': 'Se connecter',
   'fr_noAccount': 'Pas encore de compte ?',
   'fr_signUpLink': "S'inscrire",
@@ -73,22 +62,13 @@ const Map<String, String> _t = {
   'fr_createBtn': 'Créer un compte',
   'fr_hasAccount': 'Déjà un compte ?',
   'fr_loginLink': 'Se connecter',
-  'fr_otpTitle': 'Vérifiez votre numéro',
-  'fr_otpSub':
-      'Nous vous avons envoyé un code à 6 chiffres sur votre téléphone.',
-  'fr_verifyBtn': 'Vérifier',
-  'fr_resend': 'Renvoyer le code',
-  'fr_resendIn': 'Renvoyer dans',
-  'fr_forgotTitle': 'Réinitialiser',
-  'fr_forgotSub':
-      'Entrez votre e-mail ou numéro de téléphone pour recevoir un code.',
-  'fr_emailOrPhone': 'E-mail ou numéro de téléphone',
-  'fr_continueBtn': 'Continuer',
-  'fr_resetTitle': 'Nouveau mot de passe',
-  'fr_resetSub': 'Créez un mot de passe fort pour votre compte.',
-  'fr_newPw': 'Nouveau mot de passe',
-  'fr_confirmNewPw': 'Confirmer le mot de passe',
-  'fr_resetBtn': 'Réinitialiser',
+  'fr_checkEmailTitle': 'Vérifiez votre e-mail',
+  'fr_checkEmailSub': 'Nous avons envoyé un lien de vérification à',
+  'fr_checkEmailHelp':
+      'Ouvrez le lien dans votre boîte de réception, puis connectez-vous.',
+  'fr_verifiedBtn': "J'ai vérifié, se connecter",
+  'fr_resend': 'Renvoyer le lien',
+  'fr_resendIn': 'Renvoyer le lien dans',
   'fr_backToLogin': 'Retour à la connexion',
   'fr_pwWeak': 'Faible',
   'fr_pwFair': 'Moyen',
@@ -98,7 +78,6 @@ const Map<String, String> _t = {
   'fr_fieldRequired': 'Ce champ est requis',
   'fr_invalidEmail': 'Entrez une adresse e-mail valide',
   'fr_invalidPhone': 'Entrez un numéro de téléphone valide',
-  'fr_otpWrong': 'Code incorrect. Veuillez réessayer.',
   'fr_s': 's',
   // AR
   'ar_login': 'مرحباً بعودتك',
@@ -106,7 +85,6 @@ const Map<String, String> _t = {
   'ar_email': 'البريد الإلكتروني',
   'ar_password': 'كلمة المرور',
   'ar_rememberMe': 'تذكّرني',
-  'ar_forgot': 'نسيت كلمة المرور؟',
   'ar_loginBtn': 'تسجيل الدخول',
   'ar_noAccount': 'ليس لديك حساب؟',
   'ar_signUpLink': 'إنشاء حساب',
@@ -121,20 +99,12 @@ const Map<String, String> _t = {
   'ar_createBtn': 'إنشاء الحساب',
   'ar_hasAccount': 'لديك حساب بالفعل؟',
   'ar_loginLink': 'تسجيل الدخول',
-  'ar_otpTitle': 'تحقّق من رقمك',
-  'ar_otpSub': 'أرسلنا رمزاً مكوناً من 6 أرقام إلى هاتفك.',
-  'ar_verifyBtn': 'تحقّق',
-  'ar_resend': 'إعادة الإرسال',
-  'ar_resendIn': 'إعادة الإرسال خلال',
-  'ar_forgotTitle': 'إعادة تعيين كلمة المرور',
-  'ar_forgotSub': 'أدخل بريدك الإلكتروني أو رقم هاتفك لتلقي رمز إعادة التعيين.',
-  'ar_emailOrPhone': 'البريد الإلكتروني أو رقم الهاتف',
-  'ar_continueBtn': 'متابعة',
-  'ar_resetTitle': 'كلمة مرور جديدة',
-  'ar_resetSub': 'أنشئ كلمة مرور قوية لحسابك.',
-  'ar_newPw': 'كلمة مرور جديدة',
-  'ar_confirmNewPw': 'تأكيد كلمة المرور',
-  'ar_resetBtn': 'إعادة التعيين',
+  'ar_checkEmailTitle': 'تحقّق من بريدك الإلكتروني',
+  'ar_checkEmailSub': 'أرسلنا رابط تحقّق إلى',
+  'ar_checkEmailHelp': 'افتح الرابط في بريدك الوارد، ثم سجّل الدخول.',
+  'ar_verifiedBtn': 'تحقّقت، تسجيل الدخول',
+  'ar_resend': 'إعادة إرسال الرابط',
+  'ar_resendIn': 'إعادة إرسال الرابط خلال',
   'ar_backToLogin': 'العودة لتسجيل الدخول',
   'ar_pwWeak': 'ضعيفة',
   'ar_pwFair': 'متوسطة',
@@ -144,7 +114,6 @@ const Map<String, String> _t = {
   'ar_fieldRequired': 'هذا الحقل مطلوب',
   'ar_invalidEmail': 'أدخل عنوان بريد إلكتروني صحيح',
   'ar_invalidPhone': 'أدخل رقم هاتف صحيح',
-  'ar_otpWrong': 'الرمز غير صحيح. حاول مجدداً.',
   'ar_s': 'ث',
 };
 
@@ -208,9 +177,7 @@ const _strengthColors = [
   Color(0xFF22C55E),
 ];
 
-enum AuthScreen { login, signup, otp, forgot, reset }
-
-enum OtpContext { verify, forgot }
+enum AuthScreen { login, signup, checkEmail }
 
 class AuthFlow extends StatefulWidget {
   final VoidCallback onSuccess;
@@ -231,7 +198,7 @@ class AuthFlow extends StatefulWidget {
 
 class _AuthFlowState extends State<AuthFlow> {
   AuthScreen _screen = AuthScreen.login;
-  OtpContext _otpCtx = OtpContext.verify;
+  String _signupEmail = '';
   bool _visible = true;
 
   bool get _isRtl => appLanguage.isRtl;
@@ -254,7 +221,7 @@ class _AuthFlowState extends State<AuthFlow> {
     }
   }
 
-  void _go(AuthScreen next, {OtpContext? ctx}) {
+  void _go(AuthScreen next, {String? signupEmail}) {
     setState(() {
       _visible = false;
     });
@@ -262,8 +229,8 @@ class _AuthFlowState extends State<AuthFlow> {
       if (mounted) {
         setState(() {
           _screen = next;
-          if (ctx != null) {
-            _otpCtx = ctx;
+          if (signupEmail != null) {
+            _signupEmail = signupEmail;
           }
           _visible = true;
         });
@@ -346,41 +313,20 @@ class _AuthFlowState extends State<AuthFlow> {
           onLogin: widget.onSuccess,
           onBossSuccess: widget.onBossSuccess,
           onSignup: () => _go(AuthScreen.signup),
-          onForgot: () => _go(AuthScreen.forgot),
           onBack: widget.onBack,
           demoRole: widget.demoRole,
         );
       case AuthScreen.signup:
         return SignupScreen(
-          onNext: () => _go(AuthScreen.otp, ctx: OtpContext.verify),
+          onNext: (email) => _go(AuthScreen.checkEmail, signupEmail: email),
           onLogin: () => _go(AuthScreen.login),
           onBack: () => _go(AuthScreen.login),
+          role: widget.demoRole == 'driver' ? 'driver' : 'client',
         );
-      case AuthScreen.otp:
-        return OtpScreen(
-          onVerified: () {
-            if (_otpCtx == OtpContext.verify) {
-              widget.onSuccess();
-            } else {
-              _go(AuthScreen.reset);
-            }
-          },
-          onBack: () {
-            if (_otpCtx == OtpContext.verify) {
-              _go(AuthScreen.signup);
-            } else {
-              _go(AuthScreen.forgot);
-            }
-          },
-        );
-      case AuthScreen.forgot:
-        return ForgotScreen(
-          onNext: () => _go(AuthScreen.otp, ctx: OtpContext.forgot),
-          onBack: () => _go(AuthScreen.login),
-        );
-      case AuthScreen.reset:
-        return ResetScreen(
-          onDone: () => _go(AuthScreen.login),
+      case AuthScreen.checkEmail:
+        return CheckEmailScreen(
+          email: _signupEmail,
+          onLogin: () => _go(AuthScreen.login),
           onBack: () => _go(AuthScreen.login),
         );
     }
@@ -900,7 +846,6 @@ class LoginScreen extends StatefulWidget {
   final VoidCallback onLogin;
   final VoidCallback onBossSuccess;
   final VoidCallback onSignup;
-  final VoidCallback onForgot;
   final VoidCallback onBack;
   final String demoRole;
   const LoginScreen({
@@ -908,7 +853,6 @@ class LoginScreen extends StatefulWidget {
     required this.onLogin,
     required this.onBossSuccess,
     required this.onSignup,
-    required this.onForgot,
     required this.onBack,
     this.demoRole = 'client',
   });
@@ -1054,17 +998,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
                 ),
               ),
-              GestureDetector(
-                onTap: widget.onForgot,
-                child: Text(
-                  _tr('forgot'),
-                  style: _pop(
-                    size: 12,
-                    weight: FontWeight.w600,
-                    color: const Color(0xFFF5A524),
-                  ),
-                ),
-              ),
             ],
           ),
           const SizedBox(height: 24),
@@ -1078,12 +1011,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   _pw.isNotEmpty) {
                 try {
                   final auth = AuthService();
-                  final resp = await auth.login(_email.trim(), _pw);
-                  if (resp.user.role == 'boss') {
-                    widget.onBossSuccess();
-                  } else {
-                    widget.onLogin();
-                  }
+                  await auth.login(_email.trim(), _pw);
+                  // Route from the stored role in the shell/host, not from the
+                  // onboarding tile or a local role guess here.
+                  widget.onLogin();
                 } catch (e) {
                   if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -1132,14 +1063,18 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 
 class SignupScreen extends StatefulWidget {
-  final VoidCallback onNext;
+  final ValueChanged<String> onNext;
   final VoidCallback onLogin;
   final VoidCallback onBack;
+  final String role;
+  final AuthService? auth;
   const SignupScreen({
     super.key,
     required this.onNext,
     required this.onLogin,
     required this.onBack,
+    required this.role,
+    this.auth,
   });
 
   @override
@@ -1155,6 +1090,7 @@ class _SignupScreenState extends State<SignupScreen> {
       _confirm = '';
   bool _agreed = false;
   bool _touched = false;
+  bool _submitting = false;
   final ScrollController _scroll = ScrollController();
 
   @override
@@ -1407,14 +1343,38 @@ class _SignupScreenState extends State<SignupScreen> {
             ),
           ),
           _PrimaryBtn(
-            label: _tr('createBtn'),
-            onClick: () {
+            label: _submitting ? '...' : _tr('createBtn'),
+            onClick: () async {
               setState(() => _touched = true);
-              if (_errs.isEmpty && _agreed) {
-                widget.onNext();
+              if (_errs.isNotEmpty || !_agreed || _submitting) {
+                return;
+              }
+              final email = _email.trim();
+              setState(() => _submitting = true);
+              try {
+                final auth = widget.auth ?? AuthService();
+                await auth.signup(email, _pw, widget.role);
+                if (!mounted) return;
+                widget.onNext(email);
+              } catch (e) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Sign up failed: ${apiErrorMessage(e)}',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    backgroundColor: const Color(0xFFE0533D),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              } finally {
+                if (mounted) {
+                  setState(() => _submitting = false);
+                }
               }
             },
-            disabled: !_agreed,
+            disabled: !_agreed || _submitting,
           ),
           const SizedBox(height: 24),
           Center(
@@ -1447,23 +1407,27 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 }
 
-class OtpScreen extends StatefulWidget {
-  final VoidCallback onVerified;
+class CheckEmailScreen extends StatefulWidget {
+  final String email;
+  final VoidCallback onLogin;
   final VoidCallback onBack;
-  const OtpScreen({super.key, required this.onVerified, required this.onBack});
+  final AuthService? auth;
+  const CheckEmailScreen({
+    super.key,
+    required this.email,
+    required this.onLogin,
+    required this.onBack,
+    this.auth,
+  });
 
   @override
-  State<OtpScreen> createState() => _OtpScreenState();
+  State<CheckEmailScreen> createState() => _CheckEmailScreenState();
 }
 
-class _OtpScreenState extends State<OtpScreen> {
-  final List<TextEditingController> _controllers = List.generate(
-    6,
-    (_) => TextEditingController(),
-  );
-  final List<FocusNode> _nodes = List.generate(6, (_) => FocusNode());
+class _CheckEmailScreenState extends State<CheckEmailScreen> {
   int _seconds = 60;
   String _error = '';
+  bool _resending = false;
   Timer? _timer;
 
   @override
@@ -1471,21 +1435,12 @@ class _OtpScreenState extends State<OtpScreen> {
     super.initState();
     appLanguage.addListener(_onLang);
     _startTimer();
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => _nodes[0].requestFocus(),
-    );
   }
 
   @override
   void dispose() {
     _timer?.cancel();
     appLanguage.removeListener(_onLang);
-    for (final c in _controllers) {
-      c.dispose();
-    }
-    for (final n in _nodes) {
-      n.dispose();
-    }
     super.dispose();
   }
 
@@ -1499,6 +1454,10 @@ class _OtpScreenState extends State<OtpScreen> {
     _timer?.cancel();
     _seconds = 60;
     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) {
+        t.cancel();
+        return;
+      }
       if (_seconds <= 1) {
         t.cancel();
         setState(() => _seconds = 0);
@@ -1508,34 +1467,48 @@ class _OtpScreenState extends State<OtpScreen> {
     });
   }
 
-  void _resend() {
-    setState(() {
-      _error = '';
-      _seconds = 60;
-    });
-    for (final c in _controllers) {
-      c.clear();
+  Future<void> _resend() async {
+    if (_seconds > 0 || _resending) {
+      return;
     }
-    _startTimer();
-    _nodes[0].requestFocus();
-  }
-
-  void _verify() {
-    final code = _controllers.map((c) => c.text).join();
-    if (code == '123456') {
-      widget.onVerified();
-    } else {
-      setState(() => _error = _tr('otpWrong'));
-      for (final c in _controllers) {
-        c.clear();
+    setState(() {
+      _resending = true;
+      _error = '';
+    });
+    try {
+      final auth = widget.auth ?? AuthService();
+      await auth.resendVerification(widget.email);
+      if (!mounted) {
+        return;
       }
-      _nodes[0].requestFocus();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Verification link sent.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      final throttled = e is ApiException && e.statusCode == 429;
+      setState(() {
+        _error = throttled
+            ? 'Too many requests. Please wait before trying again.'
+            : apiErrorMessage(e);
+      });
+    } finally {
+      // Restart the cooldown even on failure so a throttled or failing
+      // endpoint cannot be spammed by repeated taps.
+      if (mounted) {
+        setState(() => _resending = false);
+        _startTimer();
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final filled = _controllers.every((c) => c.text.isNotEmpty);
     return _screenWrap(
       context: context,
       onBack: widget.onBack,
@@ -1552,14 +1525,14 @@ class _OtpScreenState extends State<OtpScreen> {
             ),
             child: const Center(
               child: Icon(
-                Icons.lock_outline_rounded,
+                Icons.mail_outline_rounded,
                 size: 44,
                 color: Color(0xFFF5A524),
               ),
             ),
           ),
           Text(
-            _tr('otpTitle'),
+            _tr('checkEmailTitle'),
             textAlign: TextAlign.center,
             style: _pop(
               size: 24,
@@ -1568,83 +1541,33 @@ class _OtpScreenState extends State<OtpScreen> {
               letterSpacing: -0.03,
             ),
           ),
-          const SizedBox(height: 10),
-          Text(
-            _tr('otpSub'),
-            textAlign: TextAlign.center,
-            style: _pop(size: 13, color: const Color(0xFF999999), height: 1.6),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Demo code: 123456',
-            textAlign: TextAlign.center,
-            style: _pop(size: 11, color: const Color(0xFFBBBBBB)),
-          ),
-          const SizedBox(height: 32),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(
-              6,
-              (i) => Container(
-                width: 46,
-                height: 56,
-                margin: EdgeInsets.only(right: i < 5 ? 10 : 0),
-                child: TextField(
-                  controller: _controllers[i],
-                  focusNode: _nodes[i],
-                  textAlign: TextAlign.center,
-                  keyboardType: TextInputType.number,
-                  maxLength: 1,
+          const SizedBox(height: 12),
+          Text.rich(
+            TextSpan(
+              style: _pop(
+                size: 13,
+                color: const Color(0xFF999999),
+                height: 1.6,
+              ),
+              children: [
+                TextSpan(text: '${_tr('checkEmailSub')} '),
+                TextSpan(
+                  text: widget.email,
                   style: _pop(
-                    size: 22,
+                    size: 13,
                     weight: FontWeight.w700,
                     color: const Color(0xFF111111),
                   ),
-                  decoration: InputDecoration(
-                    counterText: '',
-                    filled: true,
-                    fillColor: _controllers[i].text.isNotEmpty
-                        ? const Color(0xFFFFF7E6)
-                        : const Color(0xFFFAFAFA),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(
-                        color: _error.isNotEmpty
-                            ? const Color(0xFFEF4444)
-                            : _controllers[i].text.isNotEmpty
-                            ? const Color(0xFFF5A524)
-                            : const Color(0xFFE8E8E8),
-                        width: 2,
-                      ),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(
-                        color: _error.isNotEmpty
-                            ? const Color(0xFFEF4444)
-                            : _controllers[i].text.isNotEmpty
-                            ? const Color(0xFFF5A524)
-                            : const Color(0xFFE8E8E8),
-                        width: 2,
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(
-                        color: Color(0xFFF5A524),
-                        width: 2,
-                      ),
-                    ),
-                  ),
-                  onChanged: (v) {
-                    setState(() {});
-                    if (v.isNotEmpty && i < 5) {
-                      _nodes[i + 1].requestFocus();
-                    }
-                  },
                 ),
-              ),
+              ],
             ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _tr('checkEmailHelp'),
+            textAlign: TextAlign.center,
+            style: _pop(size: 13, color: const Color(0xFF999999), height: 1.6),
           ),
           if (_error.isNotEmpty) ...[
             const SizedBox(height: 12),
@@ -1654,7 +1577,7 @@ class _OtpScreenState extends State<OtpScreen> {
               style: _pop(size: 12, color: const Color(0xFFEF4444)),
             ),
           ],
-          const SizedBox(height: 28),
+          const SizedBox(height: 32),
           _seconds > 0
               ? Center(
                   child: RichText(
@@ -1678,9 +1601,9 @@ class _OtpScreenState extends State<OtpScreen> {
                 )
               : Center(
                   child: GestureDetector(
-                    onTap: _resend,
+                    onTap: _resending ? null : _resend,
                     child: Text(
-                      _tr('resend'),
+                      _resending ? '...' : _tr('resend'),
                       style: _pop(
                         size: 13,
                         weight: FontWeight.w700,
@@ -1691,207 +1614,8 @@ class _OtpScreenState extends State<OtpScreen> {
                 ),
           const SizedBox(height: 28),
           _PrimaryBtn(
-            label: _tr('verifyBtn'),
-            onClick: _verify,
-            disabled: !filled,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class ForgotScreen extends StatefulWidget {
-  final VoidCallback onNext;
-  final VoidCallback onBack;
-  const ForgotScreen({super.key, required this.onNext, required this.onBack});
-
-  @override
-  State<ForgotScreen> createState() => _ForgotScreenState();
-}
-
-class _ForgotScreenState extends State<ForgotScreen> {
-  String _value = '';
-  String _error = '';
-  bool _touched = false;
-
-  @override
-  void initState() {
-    super.initState();
-    appLanguage.addListener(_onLang);
-  }
-
-  @override
-  void dispose() {
-    appLanguage.removeListener(_onLang);
-    super.dispose();
-  }
-
-  void _onLang() {
-    if (mounted) {
-      setState(() {});
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return _screenWrap(
-      context: context,
-      onBack: widget.onBack,
-      child: ListView(
-        padding: const EdgeInsets.only(bottom: 32),
-        children: [
-          Text(
-            _tr('forgotTitle'),
-            textAlign: TextAlign.start,
-            style: _pop(
-              size: 26,
-              weight: FontWeight.w800,
-              color: const Color(0xFF111111),
-              letterSpacing: -0.03,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _tr('forgotSub'),
-            textAlign: TextAlign.start,
-            style: _pop(size: 13, color: const Color(0xFF999999), height: 1.6),
-          ),
-          const SizedBox(height: 32),
-          _Field(
-            label: _tr('emailOrPhone'),
-            value: _value,
-            onChange: (v) {
-              _value = v;
-              if (_touched) {
-                setState(() => _error = '');
-              }
-            },
-            placeholder: 'you@example.com',
-            error: _touched ? _error : '',
-          ),
-          const SizedBox(height: 8),
-          _PrimaryBtn(
-            label: _tr('continueBtn'),
-            onClick: () {
-              setState(() {
-                _touched = true;
-              });
-              if (_value.trim().isEmpty) {
-                setState(() => _error = _tr('fieldRequired'));
-                return;
-              }
-              if (!_isValidEmail(_value) && !_isValidPhone(_value)) {
-                setState(() => _error = _tr('invalidEmail'));
-                return;
-              }
-              widget.onNext();
-            },
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class ResetScreen extends StatefulWidget {
-  final VoidCallback onDone;
-  final VoidCallback onBack;
-  const ResetScreen({super.key, required this.onDone, required this.onBack});
-
-  @override
-  State<ResetScreen> createState() => _ResetScreenState();
-}
-
-class _ResetScreenState extends State<ResetScreen> {
-  String _pw = '';
-  String _confirm = '';
-  bool _touched = false;
-
-  @override
-  void initState() {
-    super.initState();
-    appLanguage.addListener(_onLang);
-  }
-
-  @override
-  void dispose() {
-    appLanguage.removeListener(_onLang);
-    super.dispose();
-  }
-
-  void _onLang() {
-    if (mounted) {
-      setState(() {});
-    }
-  }
-
-  Map<String, String> get _errs {
-    if (!_touched) {
-      return {};
-    }
-    final e = <String, String>{};
-    if (_pw.isEmpty) {
-      e['pw'] = _tr('fieldRequired');
-    }
-    if (_confirm.isEmpty) {
-      e['confirm'] = _tr('fieldRequired');
-    } else if (_confirm != _pw) {
-      e['confirm'] = _tr('pwMismatch');
-    }
-    return e;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final errs = _errs;
-    return _screenWrap(
-      context: context,
-      onBack: widget.onBack,
-      child: ListView(
-        padding: const EdgeInsets.only(bottom: 32),
-        children: [
-          Text(
-            _tr('resetTitle'),
-            textAlign: TextAlign.start,
-            style: _pop(
-              size: 26,
-              weight: FontWeight.w800,
-              color: const Color(0xFF111111),
-              letterSpacing: -0.03,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _tr('resetSub'),
-            textAlign: TextAlign.start,
-            style: _pop(size: 13, color: const Color(0xFF999999), height: 1.6),
-          ),
-          const SizedBox(height: 32),
-          _PwField(
-            label: _tr('newPw'),
-            value: _pw,
-            onChange: (v) => _pw = v,
-            placeholder: '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022',
-            error: errs['pw'] ?? '',
-          ),
-          _StrengthBar(pw: _pw),
-          _PwField(
-            label: _tr('confirmNewPw'),
-            value: _confirm,
-            onChange: (v) => _confirm = v,
-            placeholder: '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022',
-            error: errs['confirm'] ?? '',
-          ),
-          const SizedBox(height: 8),
-          _PrimaryBtn(
-            label: _tr('resetBtn'),
-            onClick: () {
-              setState(() => _touched = true);
-              if (_errs.isEmpty && _pw.isNotEmpty) {
-                widget.onDone();
-              }
-            },
+            label: _tr('verifiedBtn'),
+            onClick: widget.onLogin,
           ),
           const SizedBox(height: 20),
           Center(

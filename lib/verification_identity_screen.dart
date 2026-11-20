@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'app_language.dart';
+import 'services/document_verification_service.dart';
+import 'widgets/document_submission.dart';
 
 TextStyle _pop({double? size, FontWeight? weight, Color? color, double? height, double? letterSpacing}) {
   return GoogleFonts.poppins(fontSize: size, fontWeight: weight, color: color, height: height, letterSpacing: letterSpacing);
@@ -23,7 +25,10 @@ class _VerificationIdentityScreenState extends State<VerificationIdentityScreen>
   // XFile.path fails on Flutter Web, producing "Failed to process image".
   Uint8List? _frontImage;
   Uint8List? _backImage;
+  String _frontName = 'id_card_front.jpg';
+  String _backName = 'id_card_back.jpg';
   bool _processing = false;
+  String? _status;
 
   String get _lang => appLanguage.lang;
   bool get _isArabic => _lang == 'AR';
@@ -39,6 +44,11 @@ class _VerificationIdentityScreenState extends State<VerificationIdentityScreen>
     final picked = await picker.pickImage(source: ImageSource.camera, preferredCameraDevice: CameraDevice.rear);
     if (picked != null) {
       final bytes = await picked.readAsBytes();
+      if (isFront) {
+        _frontName = picked.name;
+      } else {
+        _backName = picked.name;
+      }
       final error = await _validateImage(bytes);
       if (!mounted) return;
       if (error != null) {
@@ -234,15 +244,37 @@ class _VerificationIdentityScreenState extends State<VerificationIdentityScreen>
     );
   }
 
-  void _onSubmit() {
-    if (_frontImage == null || _backImage == null) return;
-    setState(() => _processing = true);
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        setState(() => _processing = false);
-        widget.onComplete();
-      }
+  Future<void> _onSubmit() async {
+    if (_processing || _frontImage == null || _backImage == null) return;
+    setState(() {
+      _processing = true;
+      _status = null;
     });
+
+    final passed = await submitCapturedDocuments(
+      context: context,
+      documents: {
+        'id_card_front': CapturedDocument(
+          bytes: _frontImage!,
+          filename: _frontName,
+        ),
+        'id_card_back': CapturedDocument(
+          bytes: _backImage!,
+          filename: _backName,
+        ),
+      },
+      onProgress: (phase) {
+        if (mounted) setState(() => _status = phase);
+      },
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _processing = false;
+      _status = null;
+    });
+    // REJECT keeps the user on this screen so they can retake the photo.
+    if (passed) widget.onComplete();
   }
 
   @override
@@ -320,9 +352,20 @@ class _VerificationIdentityScreenState extends State<VerificationIdentityScreen>
               ),
               child: Center(
                 child: _processing
-                  ? const SizedBox(
-                      width: 22, height: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                  ? Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(
+                          width: 22, height: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                        ),
+                        if (_status != null) ...[
+                          const SizedBox(height: 8),
+                          Text(_status!,
+                              textAlign: TextAlign.center,
+                              style: _pop(size: 11, color: Colors.white)),
+                        ],
+                      ],
                     )
                   : Text(_t('Continue', 'متابعة', 'Continuer'),
                       style: _pop(size: 14, weight: FontWeight.w700, color: Colors.white)),

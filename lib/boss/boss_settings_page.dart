@@ -55,37 +55,6 @@ class _BossSettingsPageState extends State<BossSettingsPage> {
     return v.toString();
   }
 
-  double _parse(TextEditingController c, double fallback) {
-    final v = double.tryParse(c.text.trim().replaceAll(',', ''));
-    return v ?? fallback;
-  }
-
-  Future<void> _savePricing() async {
-    final s = BossRepository.instance.settings;
-    await BossRepository.instance.saveSettings(
-      s.copyWith(
-        baseRate: _parse(_baseRate, s.baseRate),
-        premiumMarkup: _parse(_markup, s.premiumMarkup),
-        minPrice: _parse(_minPrice, s.minPrice),
-      ),
-    );
-    _toast(tr('Settings saved', 'تم حفظ الإعدادات', 'Réglages enregistrés'));
-  }
-
-  Future<void> _saveAccount() async {
-    final s = BossRepository.instance.settings;
-    await BossRepository.instance.saveSettings(
-      s.copyWith(
-        adminName: _name.text.trim().isEmpty ? s.adminName : _name.text.trim(),
-        adminEmail: _email.text.trim().isEmpty
-            ? s.adminEmail
-            : _email.text.trim(),
-      ),
-    );
-    _password.clear();
-    _toast(tr('Account updated', 'تم تحديث الحساب', 'Compte mis à jour'));
-  }
-
   void _signOut() async {
     await AuthSession.instance.clear();
     if (!mounted) return;
@@ -156,99 +125,8 @@ class _BossSettingsPageState extends State<BossSettingsPage> {
                 ],
               ),
             ),
-            const SizedBox(height: 16),
-          ],
-          _card(
-            title: tr(
-              'Pricing Configuration',
-              'تكوين الأسعار',
-              'Configuration tarifaire',
-            ),
-            icon: Icons.attach_money,
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: _numberField(
-                        label: tr(
-                          'Base Rate (DZD/km)',
-                          'السعر الأساسي (دج/كم)',
-                          'Tarif de base (DZD/km)',
-                        ),
-                        controller: _baseRate,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _numberField(
-                        label: tr(
-                          'Premium Markup (%)',
-                          'الهامش المميز (٪)',
-                          'Majoration premium (%)',
-                        ),
-                        controller: _markup,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                _numberField(
-                  label: tr(
-                    'Min. Mission Price (DZD)',
-                    'الحد الأدنى لسعر المهمة (دج)',
-                    'Prix min. mission (DZD)',
-                  ),
-                  controller: _minPrice,
-                ),
-                const SizedBox(height: 18),
-                _saveButton(
-                  label: tr('Save Changes', 'حفظ التغييرات', 'Enregistrer'),
-                  onTap: _savePricing,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          _card(
-            title: tr('Admin Account', 'حساب المدير', 'Compte admin'),
-            icon: Icons.admin_panel_settings_outlined,
-            child: Column(
-              children: [
-                _textField(
-                  label: tr('Full Name', 'الاسم الكامل', 'Nom complet'),
-                  controller: _name,
-                ),
-                const SizedBox(height: 14),
-                _textField(
-                  label: tr('Email', 'البريد الإلكتروني', 'E-mail'),
-                  controller: _email,
-                  keyboard: TextInputType.emailAddress,
-                ),
-                const SizedBox(height: 14),
-                _textField(
-                  label: tr(
-                    'New Password',
-                    'كلمة المرور الجديدة',
-                    'Nouveau mot de passe',
-                  ),
-                  controller: _password,
-                  obscure: true,
-                  hint: tr(
-                    'Leave blank to keep current',
-                    'اتركه فارغاً للإبقاء عليه',
-                    'Laissez vide pour conserver',
-                  ),
-                ),
-                const SizedBox(height: 18),
-                _saveButton(
-                  label: tr('Update Account', 'تحديث الحساب', 'Mettre à jour'),
-                  onTap: _saveAccount,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
+            ],
+            const SizedBox(height: 20),
           GestureDetector(
             onTap: _signOut,
             child: Container(
@@ -336,80 +214,6 @@ class _BossSettingsPageState extends State<BossSettingsPage> {
     );
   }
 
-  Widget _fieldBase({required String label, required Widget child}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: pop(
-            size: 11,
-            weight: FontWeight.w600,
-            color: const Color(0xFF555555),
-          ),
-        ),
-        const SizedBox(height: 6),
-        child,
-      ],
-    );
-  }
-
-  Widget _numberField({
-    required String label,
-    required TextEditingController controller,
-  }) {
-    return _fieldBase(
-      label: label,
-      child: TextField(
-        controller: controller,
-        keyboardType: TextInputType.number,
-        style: pop(size: 13, color: const Color(0xFF111111)),
-        decoration: _decoration(),
-      ),
-    );
-  }
-
-  Widget _textField({
-    required String label,
-    required TextEditingController controller,
-    TextInputType? keyboard,
-    bool obscure = false,
-    String? hint,
-  }) {
-    return _fieldBase(
-      label: label,
-      child: TextField(
-        controller: controller,
-        keyboardType: keyboard,
-        obscureText: obscure,
-        style: pop(size: 13, color: const Color(0xFF111111)),
-        decoration: _decoration(hint: hint),
-      ),
-    );
-  }
-
-  InputDecoration _decoration({String? hint}) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: pop(size: 13, color: const Color(0xFFBBBBBB)),
-      filled: true,
-      fillColor: const Color(0xFFFAFAFA),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFE8E8E8), width: 1.5),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFE8E8E8), width: 1.5),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFF5A524), width: 1.5),
-      ),
-    );
-  }
-
   Widget _saveButton({required String label, required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
@@ -437,14 +241,4 @@ class _BossSettingsPageState extends State<BossSettingsPage> {
     );
   }
 
-  void _toast(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: pop(size: 13, color: Colors.white)),
-        backgroundColor: const Color(0xFF111111),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
 }

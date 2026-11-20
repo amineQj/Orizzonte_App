@@ -53,7 +53,7 @@ class _BossShellState extends State<BossShell> {
     ];
 
     return Directionality(
-      textDirection: TextDirection.ltr,
+      textDirection: appLanguage.isRtl ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: const Color(0xFFF9F9F9),
         body: Column(

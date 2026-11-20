@@ -1,9 +1,7 @@
-import 'dart:convert';
+import '../models/api_models.dart' as api_models;
+import 'api_service.dart';
 
-import 'package:http/http.dart' as http;
-
-import 'auth_session.dart';
-
+/// Local view model kept for the existing boss pricing screen.
 class PricingConfig {
   final int version;
   final bool calibrated;
@@ -15,14 +13,11 @@ class PricingConfig {
     required this.parameters,
   });
 
-  factory PricingConfig.fromJson(Map<String, dynamic> json) {
-    return PricingConfig(
-      version: (json['version'] as num?)?.toInt() ?? 0,
-      calibrated: json['calibrated'] as bool? ?? false,
-      parameters: (json['parameters'] as Map?)?.cast<String, dynamic>() ??
-          <String, dynamic>{},
-    );
-  }
+  factory PricingConfig.fromApi(api_models.PricingConfig config) => PricingConfig(
+        version: config.version,
+        calibrated: config.calibrated,
+        parameters: config.parameters,
+      );
 }
 
 class PricingServiceException implements Exception {
@@ -36,107 +31,39 @@ class PricingServiceException implements Exception {
   String toString() => message;
 }
 
+/// Thin adapter over [ApiService].
+///
+/// Previously this service opened its own `http.Client` and repeated the base
+/// URL/token logic. Routing through [ApiService] gives it the same base URL,
+/// 401 refresh handler and error contract as every other backend call.
 class PricingService {
-  PricingService({http.Client? client, String? baseUrl})
-      : _client = client ?? http.Client(),
-        _baseUrl = baseUrl ?? defaultBaseUrl;
+  PricingService({ApiService? api})
+      : _api = api ?? ApiService();
 
-  static const String defaultBaseUrl = 'http://127.0.0.1:8000';
-
-  final http.Client _client;
-  final String _baseUrl;
-
-  Map<String, String> _headers() {
-    final headers = <String, String>{
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    };
-    final token = AuthSession.instance.getToken();
-    if (token != null && token.isNotEmpty) {
-      headers['Authorization'] = 'Bearer $token';
-    }
-    return headers;
-  }
-
-  Uri _uri(String path) => Uri.parse('$_baseUrl$path');
+  final ApiService _api;
 
   Future<PricingConfig> getPricingConfig() async {
-    final response = await _client.get(
-      _uri('/api/pricing/config/'),
-      headers: _headers(),
-    );
-    final body = _decodeBody(response.body);
-    if (response.statusCode == 200) {
-      if (body is Map<String, dynamic>) {
-        return PricingConfig.fromJson(body);
-      }
-      throw const PricingServiceException('Invalid response format');
+    try {
+      return PricingConfig.fromApi(await _api.getPricingConfig());
+    } on api_models.ApiException catch (e) {
+      throw PricingServiceException(e.message,
+          statusCode: e.statusCode, code: e.code);
     }
-    throw _exceptionFromResponse(response.statusCode, body);
   }
 
   Future<PricingConfig> updatePricingConfig({
     required Map<String, dynamic> parameters,
     required String password,
   }) async {
-    final response = await _client.post(
-      _uri('/api/pricing/config/update/'),
-      headers: _headers(),
-      body: jsonEncode({
-        'password': password,
-        'parameters': parameters,
-      }),
-    );
-    final body = _decodeBody(response.body);
-    if (response.statusCode == 200) {
-      if (body is Map<String, dynamic>) {
-        return PricingConfig.fromJson(body);
-      }
-      throw const PricingServiceException('Invalid response format');
-    }
-    throw _exceptionFromResponse(response.statusCode, body);
-  }
-
-  dynamic _decodeBody(String raw) {
-    if (raw.isEmpty) return null;
     try {
-      return jsonDecode(raw);
-    } catch (_) {
-      return raw;
+      return PricingConfig.fromApi(
+        await _api.updatePricingConfig(parameters, password),
+      );
+    } on api_models.ApiException catch (e) {
+      throw PricingServiceException(e.message,
+          statusCode: e.statusCode, code: e.code);
     }
   }
 
-  PricingServiceException _exceptionFromResponse(int status, dynamic body) {
-    String? code;
-    String message = 'Request failed ($status)';
-    if (body is Map) {
-      final m = body.cast<dynamic, dynamic>();
-      if (m['code'] is String) code = m['code'] as String;
-      if (m['detail'] is String) {
-        message = m['detail'] as String;
-      } else if (m['message'] is String) {
-        message = m['message'] as String;
-      } else if (m['error'] is String) {
-        message = m['error'] as String;
-      } else if (code == 'invalid_password') {
-        message = 'Invalid password';
-      }
-    }
-    if (status == 401) {
-      message = message == 'Request failed (401)'
-          ? 'Unauthorized. Please sign in again.'
-          : message;
-    } else if (status == 403 && code == 'invalid_password') {
-      message = 'Invalid password';
-    } else if (status == 400) {
-      message = message == 'Request failed (400)'
-          ? 'Validation error. Please check your inputs.'
-          : message;
-    }
-    return PricingServiceException(message, statusCode: status, code: code);
-  }
-
-  void dispose() {
-    _client.close();
-  }
+  void dispose() => _api.dispose();
 }

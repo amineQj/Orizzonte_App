@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'package:orizzonte/services/routing_service.dart';
 
@@ -37,14 +40,46 @@ void main() {
       expect(result.formattedDuration(), '~1 h 35 min');
     });
 
-    test('RoutingService getRoute fetches road route from OSRM', () async {
-      // Coordinates close to each other in Algiers
+    test('RoutingService getRoute parses an OSRM response without the network', () async {
+      final client = _OsrmClient();
       const start = LatLng(36.7525, 3.0420);
       const end = LatLng(36.7450, 3.0600);
 
-      final result = await RoutingService.getRoute(start: start, end: end);
+      final result = await RoutingService.getRoute(
+        start: start,
+        end: end,
+        client: client,
+      );
       expect(result.distanceKm, greaterThan(0.0));
-      expect(result.points.isNotEmpty, true);
+      expect(result.isRoadRoute, isTrue);
+      expect(result.points, isNotEmpty);
     });
   });
+}
+
+class _OsrmClient extends http.BaseClient {
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    final body = jsonEncode({
+      'code': 'Ok',
+      'routes': [
+        {
+          'distance': 1234.0,
+          'duration': 567.0,
+          'geometry': {
+            'coordinates': [
+              [3.0420, 36.7525],
+              [3.0600, 36.7450],
+            ],
+          },
+        },
+      ],
+    });
+    return http.StreamedResponse(
+      Stream.value(utf8.encode(body)),
+      200,
+      headers: const {'content-type': 'application/json'},
+      request: request,
+    );
+  }
 }

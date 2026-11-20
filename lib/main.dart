@@ -7,6 +7,7 @@ import 'auth_flow.dart';
 import 'boss/boss_shell.dart';
 import 'customer/customer_shell.dart';
 import 'driver_shell.dart';
+import 'services/api_service.dart' show ApiConfig;
 import 'services/auth_service.dart';
 import 'services/auth_session.dart';
 import 'splash_screen.dart';
@@ -112,10 +113,12 @@ TextStyle _poppins({
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Fail fast on a misconfigured release build instead of at first request.
+  ApiConfig.validate();
   await AuthSession.instance.load();
-  // Register the 401 → refresh-token handler for the whole app, including
-  // sessions restored from storage on a cold start.
-  AuthService();
+  // Register the single 401 → refresh-token handler for the whole app,
+  // including sessions restored from storage on a cold start.
+  AuthService.instance;
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -125,7 +128,19 @@ void main() async {
       systemNavigationBarIconBrightness: Brightness.light,
     ),
   );
+  await appLanguage.load();
   runApp(const MyApp());
+}
+
+Locale _localeFor(String lang) {
+  switch (lang) {
+    case 'AR':
+      return const Locale('ar');
+    case 'FR':
+      return const Locale('fr');
+    default:
+      return const Locale('en');
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -133,22 +148,27 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return AnimatedBuilder(
+      animation: appLanguage,
+      builder: (context, _) {
+        return MaterialApp(
       title: 'Orizzonte',
       debugShowCheckedModeBanner: false,
-      builder: (context, child) {
-        return MediaQuery(
-          data: MediaQuery.of(
-            context,
-          ).copyWith(textScaler: TextScaler.noScaling),
-          child: child!,
-        );
-      },
-      theme: ThemeData(useMaterial3: true),
+      locale: _localeFor(appLanguage.lang),
+      supportedLocales: const [
+        Locale('en'),
+        Locale('ar'),
+        Locale('fr'),
+      ],
+      theme: ThemeData(useMaterial3: true, brightness: Brightness.light),
+      darkTheme: ThemeData(useMaterial3: true, brightness: Brightness.dark),
+      themeMode: ThemeMode.system,
       initialRoute: '/splash',
       routes: {
         '/splash': (_) => const SplashScreen(),
         '/onboarding': (_) => const OnboardingScreen(),
+      },
+    );
       },
     );
   }
@@ -174,6 +194,43 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     if (_isArabic) return _translations['ar_$key'] ?? _translations[key] ?? key;
     if (_isFrench) return _translations['fr_$key'] ?? _translations[key] ?? key;
     return _translations[key] ?? key;
+  }
+
+  /// Routing is driven by the role returned from `/api/token/`, never by the
+  /// onboarding tile the user tapped.
+  Future<void> _handleAuthSuccess() async {
+    final role = AuthSession.instance.role;
+    final Widget shell;
+    switch (role) {
+      case 'client':
+        shell = const CustomerShell();
+        break;
+      case 'driver':
+        shell = const DriverShell();
+        break;
+      case 'boss':
+        shell = const BossShell();
+        break;
+      default:
+        await AuthService.instance.logout();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                role == null
+                    ? 'Sign-in did not return a role. Please try again.'
+                    : 'Unknown account role: $role. Please contact support.',
+              ),
+              backgroundColor: const Color(0xFFE0533D),
+            ),
+          );
+        }
+        return;
+    }
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => shell),
+    );
   }
 
   @override
@@ -633,24 +690,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             builder: (_) => AuthFlow(
               demoRole: 'client',
               onBack: () => Navigator.pop(context),
-              onSuccess: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    settings: const RouteSettings(name: '/customer'),
-                    builder: (_) => const CustomerShell(),
-                  ),
-                );
-              },
-              onBossSuccess: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    settings: const RouteSettings(name: '/boss'),
-                    builder: (_) => const BossShell(),
-                  ),
-                );
-              },
+              onSuccess: _handleAuthSuccess,
+              onBossSuccess: _handleAuthSuccess,
             ),
           ),
         );
@@ -730,21 +771,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             builder: (_) => AuthFlow(
               demoRole: 'driver',
               onBack: () => Navigator.pop(context),
-              onSuccess: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const DriverShell()),
-                );
-              },
-              onBossSuccess: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    settings: const RouteSettings(name: '/boss'),
-                    builder: (_) => const BossShell(),
-                  ),
-                );
-              },
+              onSuccess: _handleAuthSuccess,
+              onBossSuccess: _handleAuthSuccess,
             ),
           ),
         );

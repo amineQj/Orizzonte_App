@@ -173,7 +173,7 @@ class _DriverShellState extends State<DriverShell> {
     ];
 
     return Directionality(
-      textDirection: TextDirection.ltr,
+      textDirection: appLanguage.isRtl ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: Colors.white,
         body: Column(

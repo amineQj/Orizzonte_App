@@ -17,6 +17,16 @@ int? _iOrNull(dynamic v) => _asNum(v)?.toInt();
 
 String _s(dynamic v) => v?.toString() ?? '';
 
+/// Human-readable addresses are optional backend fields. Older payloads only
+/// carry coordinates, so callers fall back to neutral labels.
+String _firstAddress(dynamic json, List<String> keys) {
+  for (final key in keys) {
+    final value = _s(json[key]).trim();
+    if (value.isNotEmpty) return value;
+  }
+  return '';
+}
+
 class ApiUser {
   final int id;
   final String username;
@@ -86,6 +96,8 @@ class Mission {
   final double departureLon;
   final double arrivalLat;
   final double arrivalLon;
+  final String pickupAddress;
+  final String dropoffAddress;
   final double distance;
   final String date;
   final String time;
@@ -118,6 +130,8 @@ class Mission {
     required this.departureLon,
     required this.arrivalLat,
     required this.arrivalLon,
+    this.pickupAddress = '',
+    this.dropoffAddress = '',
     required this.distance,
     required this.date,
     required this.time,
@@ -154,6 +168,18 @@ class Mission {
       departureLon: _d(json['departure_longitude']),
       arrivalLat: _d(json['arrival_latitude']),
       arrivalLon: _d(json['arrival_longitude']),
+      pickupAddress: _firstAddress(json, const [
+        'pickup_address',
+        'departure_address',
+        'origin_address',
+        'pickup_location',
+      ]),
+      dropoffAddress: _firstAddress(json, const [
+        'dropoff_address',
+        'arrival_address',
+        'destination_address',
+        'dropoff_location',
+      ]),
       distance: _d(json['distance']),
       date: _s(json['date']),
       time: _s(json['time']),
@@ -188,6 +214,8 @@ class Mission {
         'departure_longitude': departureLon,
         'arrival_latitude': arrivalLat,
         'arrival_longitude': arrivalLon,
+        if (pickupAddress.isNotEmpty) 'pickup_address': pickupAddress,
+        if (dropoffAddress.isNotEmpty) 'dropoff_address': dropoffAddress,
         'distance': distance,
         'date': date,
         'time': time,
@@ -456,6 +484,8 @@ class DriverProfile {
   final String? rejectionReason;
   final Map<String, dynamic> documents;
   final Map<String, dynamic> missing;
+  final int documentsVersion;
+  final Map<String, dynamic> verificationResults;
 
   const DriverProfile({
     required this.raw,
@@ -466,6 +496,8 @@ class DriverProfile {
     this.rejectionReason,
     this.documents = const {},
     this.missing = const {},
+    this.documentsVersion = 0,
+    this.verificationResults = const {},
   });
 
   factory DriverProfile.fromJson(Map<String, dynamic> json) => DriverProfile(
@@ -479,6 +511,10 @@ class DriverProfile {
             : null,
         documents: (json['documents'] as Map?)?.cast<String, dynamic>() ?? const {},
         missing: (json['missing'] as Map?)?.cast<String, dynamic>() ?? const {},
+        documentsVersion: _i(json['documents_version']),
+        verificationResults:
+            (json['verification_results'] as Map?)?.cast<String, dynamic>() ??
+                const {},
       );
 }
 
@@ -523,15 +559,28 @@ class ApiException implements Exception {
 }
 
 /// Pulls the most useful human message out of a backend error body / exception.
+///
+/// The backend's machine-readable `code` (for example `driver_not_approved`)
+/// is appended so the user sees the exact reason, not a generic sentence.
 String apiErrorMessage(dynamic error) {
   if (error is ApiException) {
+    String message;
     final fe = error.fieldErrors;
     if (fe != null && fe.isNotEmpty) {
       final first = fe.values.first;
-      if (first is List && first.isNotEmpty) return first.first.toString();
-      return first.toString();
+      if (first is List && first.isNotEmpty) {
+        message = first.first.toString();
+      } else {
+        message = first.toString();
+      }
+    } else {
+      message = error.message;
     }
-    return error.message;
+    final code = error.code;
+    if (code != null && code.isNotEmpty && !message.contains(code)) {
+      message = '$message ($code)';
+    }
+    return message;
   }
   return error.toString().replaceFirst('Exception: ', '');
 }

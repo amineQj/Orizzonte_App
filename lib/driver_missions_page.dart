@@ -152,7 +152,6 @@ class _DriverMissionsPageState extends State<DriverMissionsPage> {
     final store = DriverMissionStore.instance;
     return Column(
       children: [
-        if (store.isDemo) DemoWarningBanner(onRetry: () => store.retry()),
         Expanded(
           child: store.isLoading
               ? const ApiLoadingView(message: 'Loading your missions...')

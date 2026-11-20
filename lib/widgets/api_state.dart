@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
+import '../app_language.dart';
 import '../models/api_models.dart';
+import 'app_text_style.dart';
+
+String _tr(String en, String ar, String fr) {
+  final lang = appLanguage.lang;
+  if (lang == 'AR') return ar;
+  if (lang == 'FR') return fr;
+  return en;
+}
 
 TextStyle _pop({double? size, FontWeight? weight, Color? color}) =>
-    GoogleFonts.poppins(fontSize: size, fontWeight: weight, color: color);
+    appPop(size: size, weight: weight, color: color);
 
 const _amber = Color(0xFFF5A524);
 
@@ -65,7 +73,7 @@ class ApiErrorView extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'Something went wrong',
+                _tr('Something went wrong', 'حدث خطأ ما', 'Une erreur est survenue'),
                 style: _pop(size: 16, weight: FontWeight.w700, color: const Color(0xFF222222)),
                 textAlign: TextAlign.center,
               ),
@@ -79,12 +87,13 @@ class ApiErrorView extends StatelessWidget {
               GestureDetector(
                 onTap: onRetry,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 12),
+                  constraints: const BoxConstraints(minHeight: 48),
+                  padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 14),
                   decoration: BoxDecoration(
                     color: _amber,
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: Text('Retry',
+                  child: Text(_tr('Retry', 'إعادة المحاولة', 'Réessayer'),
                       style: _pop(
                           size: 13,
                           weight: FontWeight.w700,
@@ -97,56 +106,33 @@ class ApiErrorView extends StatelessWidget {
       );
 }
 
-/// Amber banner shown when the app is displaying offline demo data because
-/// the backend could not be reached.
-class DemoWarningBanner extends StatelessWidget {
-  final VoidCallback onRetry;
-  const DemoWarningBanner({super.key, required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) => Container(
-        width: double.infinity,
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFF3DC),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: _amber.withValues(alpha: 0.4)),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.info_outline, size: 17, color: Color(0xFFB87600)),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Offline demo data — the backend is unreachable. '
-                'Showing sample data; retry to load live information.',
-                style: _pop(
-                    size: 11,
-                    weight: FontWeight.w600,
-                    color: const Color(0xFF8A5B00)),
-              ),
-            ),
-            GestureDetector(
-              onTap: onRetry,
-              child: const Icon(Icons.refresh, size: 17, color: Color(0xFFB87600)),
-            ),
-          ],
-        ),
-      );
-}
-
 /// Shows a SnackBar with a normalized API error message.
 void showApiError(BuildContext context, dynamic error) {
-  final message = apiErrorMessage(error);
   final messenger = ScaffoldMessenger.maybeOf(context);
   if (messenger == null) return;
+  showApiErrorWithMessenger(messenger, error);
+}
+
+/// Error snackbar variant safe to call after an `await`: capture the
+/// [ScaffoldMessengerState] before the async gap and pass it here, so no
+/// [BuildContext] is used across the gap.
+void showApiErrorWithMessenger(ScaffoldMessengerState messenger, dynamic error) {
+  final message = apiErrorMessage(error);
+  _snack(messenger, message, const Color(0xFFE0533D));
+}
+
+/// Green success snackbar, also safe to use after an `await`.
+void showSuccessWithMessenger(ScaffoldMessengerState messenger, String message) {
+  _snack(messenger, message, const Color(0xFF4CAF50));
+}
+
+void _snack(ScaffoldMessengerState messenger, String message, Color color) {
   messenger
     ..hideCurrentSnackBar()
     ..showSnackBar(
       SnackBar(
         content: Text(message, style: _pop(size: 13, color: Colors.white)),
-        backgroundColor: const Color(0xFFE0533D),
+        backgroundColor: color,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         duration: const Duration(seconds: 4),

@@ -6,6 +6,7 @@ import 'boss_model.dart';
 import 'boss_repository.dart';
 import 'boss_ui.dart';
 import '../widgets/api_state.dart';
+import 'boss_mission_detail_page.dart';
 
 enum _Filter { all, pending, accepted, inProgress, completed }
 
@@ -67,14 +68,10 @@ class _BossRequestsPageState extends State<BossRequestsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (MissionRepository.instance.isDemo)
-          DemoWarningBanner(
-            onRetry: () => MissionRepository.instance.retry(),
-          ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Text(
-            tr('Mission Requests', 'طلبات المهام', 'Demandes de missions'),
+            tr('Mission Requests', 'Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ù…Ù‡Ø§Ù…', 'Demandes de missions'),
             style: pop(
               size: 18,
               weight: FontWeight.w800,
@@ -110,11 +107,11 @@ class _BossRequestsPageState extends State<BossRequestsPage> {
 
   Widget _filterChips() {
     final items = [
-      (_Filter.all, tr('All', 'الكل', 'Tout')),
-      (_Filter.pending, tr('Pending', 'قيد الانتظار', 'En attente')),
-      (_Filter.accepted, tr('Confirmed', 'مؤكدة', 'Confirmées')),
-      (_Filter.inProgress, tr('In Progress', 'قيد التنفيذ', 'En cours')),
-      (_Filter.completed, tr('Completed', 'مكتملة', 'Terminées')),
+      (_Filter.all, tr('All', 'Ø§Ù„ÙƒÙ„', 'Tout')),
+      (_Filter.pending, tr('Pending', 'Ù‚ÙŠØ¯ Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø±', 'En attente')),
+      (_Filter.accepted, tr('Confirmed', 'Ù…Ø¤ÙƒØ¯Ø©', 'ConfirmÃ©es')),
+      (_Filter.inProgress, tr('In Progress', 'Ù‚ÙŠØ¯ Ø§Ù„ØªÙ†ÙÙŠØ°', 'En cours')),
+      (_Filter.completed, tr('Completed', 'Ù…ÙƒØªÙ…Ù„Ø©', 'TerminÃ©es')),
     ];
 
     return SizedBox(
@@ -164,7 +161,9 @@ class _BossRequestsPageState extends State<BossRequestsPage> {
         m.status != MissionStatus.cancelled;
     final hasDriver = m.driver != null;
 
-    return Container(
+    return GestureDetector(
+      onTap: () => _showDetails(m),
+      child: Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -189,7 +188,7 @@ class _BossRequestsPageState extends State<BossRequestsPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${tr('Mission', 'مهمة', 'Mission')} · ${m.id}',
+                      '${tr('Mission', 'Ù…Ù‡Ù…Ø©', 'Mission')} Â· ${m.id}',
                       style: pop(
                         size: 13,
                         weight: FontWeight.w800,
@@ -202,8 +201,8 @@ class _BossRequestsPageState extends State<BossRequestsPage> {
                           ? _category(m)
                           : tr(
                               'General shipment',
-                              'شحنة عامة',
-                              'Envoi général',
+                              'Ø´Ø­Ù†Ø© Ø¹Ø§Ù…Ø©',
+                              'Envoi gÃ©nÃ©ral',
                             ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -265,7 +264,7 @@ class _BossRequestsPageState extends State<BossRequestsPage> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      '${tr('Assigned', 'المعيّن', 'Assigné')}: ${m.driver!.name}',
+                      '${tr('Assigned', 'Ø§Ù„Ù…Ø¹ÙŠÙ‘Ù†', 'AssignÃ©')}: ${m.driver!.name}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: pop(
@@ -285,7 +284,7 @@ class _BossRequestsPageState extends State<BossRequestsPage> {
               if (canCancel) ...[
                 Expanded(
                   child: _actionBtn(
-                    label: tr('Assign', 'تعيين', 'Assigner'),
+                    label: tr('Assign', 'ØªØ¹ÙŠÙŠÙ†', 'Assigner'),
                     icon: Icons.person_add_alt,
                     color: const Color(0xFFF5A524),
                     bg: const Color(0xFFFFF7E6),
@@ -295,7 +294,7 @@ class _BossRequestsPageState extends State<BossRequestsPage> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: _actionBtn(
-                    label: tr('Details', 'التفاصيل', 'Détails'),
+                    label: tr('Details', 'Ø§Ù„ØªÙØ§ØµÙŠÙ„', 'DÃ©tails'),
                     icon: Icons.info_outline,
                     color: const Color(0xFF3F51B5),
                     bg: const Color(0xFFE8EAF6),
@@ -305,7 +304,7 @@ class _BossRequestsPageState extends State<BossRequestsPage> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: _actionBtn(
-                    label: tr('Cancel', 'إلغاء', 'Annuler'),
+                    label: tr('Cancel', 'Ø¥Ù„ØºØ§Ø¡', 'Annuler'),
                     icon: Icons.block,
                     color: const Color(0xFFEF4444),
                     bg: const Color(0xFFFFEBEE),
@@ -316,7 +315,7 @@ class _BossRequestsPageState extends State<BossRequestsPage> {
               ] else ...[
                 Expanded(
                   child: _actionBtn(
-                    label: tr('Details', 'التفاصيل', 'Détails'),
+                    label: tr('Details', 'Ø§Ù„ØªÙØ§ØµÙŠÙ„', 'DÃ©tails'),
                     icon: Icons.info_outline,
                     color: const Color(0xFF3F51B5),
                     bg: const Color(0xFFE8EAF6),
@@ -328,6 +327,7 @@ class _BossRequestsPageState extends State<BossRequestsPage> {
             ],
           ),
         ],
+      ),
       ),
     );
   }
@@ -477,7 +477,7 @@ class _BossRequestsPageState extends State<BossRequestsPage> {
     if (o.category.isNotEmpty &&
         o.truckType.isNotEmpty &&
         o.category != 'general') {
-      return '${o.category} · ${o.truckType}';
+      return '${o.category} Â· ${o.truckType}';
     }
     if (o.truckType.isNotEmpty) return o.truckType;
     return 'General shipment';
@@ -485,12 +485,12 @@ class _BossRequestsPageState extends State<BossRequestsPage> {
 
   String _dateLabel(CustomerMission m) {
     final o = m.order;
-    if (o.isNow) return tr('Now', 'الآن', 'Maintenant');
+    if (o.isNow) return tr('Now', 'Ø§Ù„Ø¢Ù†', 'Maintenant');
     if (o.manualDate.isNotEmpty && o.manualTime.isNotEmpty) {
       return '${o.manualDate} ${o.manualTime}';
     }
     if (o.manualDate.isNotEmpty) return o.manualDate;
-    return tr('Scheduled', 'مجدول', 'Planifié');
+    return tr('Scheduled', 'Ù…Ø¬Ø¯ÙˆÙ„', 'PlanifiÃ©');
   }
 
   Widget _emptyState() {
@@ -515,7 +515,7 @@ class _BossRequestsPageState extends State<BossRequestsPage> {
             ),
             const SizedBox(height: 14),
             Text(
-              tr('No requests here', 'لا توجد طلبات هنا', 'Aucune demande'),
+              tr('No requests here', 'Ù„Ø§ ØªÙˆØ¬Ø¯ Ø·Ù„Ø¨Ø§Øª Ù‡Ù†Ø§', 'Aucune demande'),
               style: pop(
                 size: 15,
                 weight: FontWeight.w700,
@@ -526,7 +526,7 @@ class _BossRequestsPageState extends State<BossRequestsPage> {
             Text(
               tr(
                 'Try another filter.',
-                'جرب مرشحاً آخر.',
+                'Ø¬Ø±Ø¨ Ù…Ø±Ø´Ø­Ø§Ù‹ Ø¢Ø®Ø±.',
                 'Essayez un autre filtre.',
               ),
               style: pop(size: 12, color: const Color(0xFF999999)),
@@ -574,7 +574,7 @@ class _BossRequestsPageState extends State<BossRequestsPage> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(
-                tr('Assign a Driver', 'تعيين سائق', 'Assigner un chauffeur'),
+                tr('Assign a Driver', 'ØªØ¹ÙŠÙŠÙ† Ø³Ø§Ø¦Ù‚', 'Assigner un chauffeur'),
                 style: pop(
                   size: 16,
                   weight: FontWeight.w700,
@@ -586,7 +586,7 @@ class _BossRequestsPageState extends State<BossRequestsPage> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(
-                '${tr('Mission', 'مهمة', 'Mission')} · ${m.id}',
+                '${tr('Mission', 'Ù…Ù‡Ù…Ø©', 'Mission')} Â· ${m.id}',
                 style: pop(size: 12, color: const Color(0xFF999999)),
               ),
             ),
@@ -647,7 +647,7 @@ class _BossRequestsPageState extends State<BossRequestsPage> {
           showApiError(context, error);
           return;
         }
-        _toast(tr('Driver assigned', 'تم تعيين السائق', 'Chauffeur assigné'));
+        _toast(tr('Driver assigned', 'ØªÙ… ØªØ¹ÙŠÙŠÙ† Ø§Ù„Ø³Ø§Ø¦Ù‚', 'Chauffeur assignÃ©'));
       },
       borderRadius: BorderRadius.circular(16),
       child: Padding(
@@ -712,7 +712,7 @@ class _BossRequestsPageState extends State<BossRequestsPage> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '$activeCount ${tr('active', 'نشطة', 'actives')}',
+                  '$activeCount ${tr('active', 'Ù†Ø´Ø·Ø©', 'actives')}',
                   style: pop(size: 10, color: const Color(0xFF999999)),
                 ),
               ],
@@ -737,183 +737,19 @@ class _BossRequestsPageState extends State<BossRequestsPage> {
   }
 
   void _showDetails(CustomerMission m) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (ctx) => Container(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(ctx).size.height * 0.78,
-        ),
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 30,
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 12),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                tr('Mission Details', 'تفاصيل المهمة', 'Détails de la mission'),
-                style: pop(
-                  size: 16,
-                  weight: FontWeight.w700,
-                  color: const Color(0xFF111111),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _detailRow(
-                      Icons.tag,
-                      tr('Mission ID', 'رقم المهمة', 'ID mission'),
-                      m.id,
-                    ),
-                    _detailRow(
-                      Icons.person_outline,
-                      tr('Customer phone', 'هاتف العميل', 'Tél. client'),
-                      m.order.phoneNumber.isNotEmpty
-                          ? m.order.phoneNumber
-                          : '-',
-                    ),
-                    _detailRow(
-                      Icons.category_outlined,
-                      tr('Category', 'الفئة', 'Catégorie'),
-                      _category(m),
-                    ),
-                    _detailRow(
-                      Icons.place_outlined,
-                      tr('Pickup', 'الاستلام', 'Enlèvement'),
-                      m.order.pickup,
-                    ),
-                    _detailRow(
-                      Icons.flag_outlined,
-                      tr('Delivery', 'التسليم', 'Livraison'),
-                      m.order.delivery,
-                    ),
-                    if (m.order.distance != null &&
-                        m.order.distance!.isNotEmpty)
-                      _detailRow(
-                        Icons.straighten,
-                        tr('Distance', 'المسافة', 'Distance'),
-                        m.order.distance!,
-                      ),
-                    _detailRow(
-                      Icons.calendar_today_outlined,
-                      tr('Date and time', 'التاريخ والوقت', 'Date et heure'),
-                      _dateLabel(m),
-                    ),
-                    _detailRow(
-                      Icons.inventory_2_outlined,
-                      tr('Commodity', 'البضاعة', 'Marchandise'),
-                      m.order.commodity.isNotEmpty
-                          ? m.order.commodity
-                          : tr(
-                              'No description',
-                              'لا يوجد وصف',
-                              'Aucune description',
-                            ),
-                    ),
-                    if (m.order.estimatedPrice.isNotEmpty)
-                      _detailRow(
-                        Icons.attach_money,
-                        tr('Price', 'السعر', 'Prix'),
-                        '${m.order.estimatedPrice} DZD',
-                      ),
-                    const SizedBox(height: 8),
-                    if (m.driver != null)
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFF7E6),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.local_shipping,
-                              size: 18,
-                              color: Color(0xFFF5A524),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                '${tr('Driver', 'السائق', 'Chauffeur')}: ${m.driver!.name} · ${m.driver!.phone}',
-                                style: pop(
-                                  size: 12,
-                                  weight: FontWeight.w600,
-                                  color: const Color(0xFF333333),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+    final id = int.tryParse(m.id);
+    if (id == null) {
+      showApiError(context, 'Invalid mission id: ${m.id}');
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BossMissionDetailPage(missionId: id),
       ),
     );
   }
 
-  Widget _detailRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 18, color: const Color(0xFFBBBBBB)),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              label,
-              style: pop(size: 13, color: const Color(0xFF999999)),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            flex: 2,
-            child: Text(
-              value,
-              textAlign: TextAlign.end,
-              style: pop(
-                size: 13,
-                weight: FontWeight.w600,
-                color: const Color(0xFF111111),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   void _confirmCancel(CustomerMission m) {
     showDialog(
@@ -922,16 +758,16 @@ class _BossRequestsPageState extends State<BossRequestsPage> {
         ctx,
         title: tr(
           'Cancel this mission?',
-          'إلغاء هذه المهمة؟',
+          'Ø¥Ù„ØºØ§Ø¡ Ù‡Ø°Ù‡ Ø§Ù„Ù…Ù‡Ù…Ø©ØŸ',
           'Annuler cette mission ?',
         ),
         message: tr(
           'This action cannot be undone.',
-          'لا يمكن التراجع عن هذا الإجراء.',
-          'Cette action est irréversible.',
+          'Ù„Ø§ ÙŠÙ…ÙƒÙ† Ø§Ù„ØªØ±Ø§Ø¬Ø¹ Ø¹Ù† Ù‡Ø°Ø§ Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡.',
+          'Cette action est irrÃ©versible.',
         ),
-        confirmLabel: tr('Cancel', 'إلغاء', 'Annuler'),
-        cancelLabel: tr('Keep', 'إبقاء', 'Garder'),
+        confirmLabel: tr('Cancel', 'Ø¥Ù„ØºØ§Ø¡', 'Annuler'),
+        cancelLabel: tr('Keep', 'Ø¥Ø¨Ù‚Ø§Ø¡', 'Garder'),
         confirmColor: const Color(0xFFEF4444),
         icon: Icons.block,
         onConfirm: () async {
@@ -946,7 +782,7 @@ class _BossRequestsPageState extends State<BossRequestsPage> {
             showApiError(context, error);
             return;
           }
-          _toast(tr('Mission cancelled', 'تم إلغاء المهمة', 'Mission annulée'));
+          _toast(tr('Mission cancelled', 'ØªÙ… Ø¥Ù„ØºØ§Ø¡ Ø§Ù„Ù…Ù‡Ù…Ø©', 'Mission annulÃ©e'));
         },
       ),
     );
@@ -959,16 +795,16 @@ class _BossRequestsPageState extends State<BossRequestsPage> {
         ctx,
         title: tr(
           'Delete this mission?',
-          'حذف هذه المهمة؟',
+          'Ø­Ø°Ù Ù‡Ø°Ù‡ Ø§Ù„Ù…Ù‡Ù…Ø©ØŸ',
           'Supprimer cette mission ?',
         ),
         message: tr(
           'The mission will be removed permanently.',
-          'سيتم حذف المهمة نهائياً.',
-          'La mission sera supprimée définitivement.',
+          'Ø³ÙŠØªÙ… Ø­Ø°Ù Ø§Ù„Ù…Ù‡Ù…Ø© Ù†Ù‡Ø§Ø¦ÙŠØ§Ù‹.',
+          'La mission sera supprimÃ©e dÃ©finitivement.',
         ),
-        confirmLabel: tr('Delete', 'حذف', 'Supprimer'),
-        cancelLabel: tr('Keep', 'إبقاء', 'Garder'),
+        confirmLabel: tr('Delete', 'Ø­Ø°Ù', 'Supprimer'),
+        cancelLabel: tr('Keep', 'Ø¥Ø¨Ù‚Ø§Ø¡', 'Garder'),
         confirmColor: const Color(0xFFEF4444),
         icon: Icons.delete_outline,
         onConfirm: () async {
@@ -980,7 +816,7 @@ class _BossRequestsPageState extends State<BossRequestsPage> {
             showApiError(context, error);
             return;
           }
-          _toast(tr('Mission deleted', 'تم حذف المهمة', 'Mission supprimée'));
+          _toast(tr('Mission deleted', 'ØªÙ… Ø­Ø°Ù Ø§Ù„Ù…Ù‡Ù…Ø©', 'Mission supprimÃ©e'));
         },
       ),
     );

@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, 'feature/**']
+  pull_request:
+
+jobs:
+  flutter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.x'
+          channel: stable
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          path: frontend
+      # Backend checks are documented in FIX_TRACKER.md and run in the backend repo.
+      - run: echo "Backend checks: manage.py check, makemigrations --check --dry-run, manage.py test, pytest"

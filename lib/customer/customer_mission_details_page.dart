@@ -247,7 +247,7 @@ class _CustomerMissionDetailsPageState
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => NegotiationPage(missionId: id),
+                      builder: (_) => NegotiationPage(missionId: id, role: 'client'),
                     ),
                   );
                 },

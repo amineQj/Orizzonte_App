@@ -1,17 +1,37 @@
-# flutter_application_1
+# ORIZZONTE (Flutter client)
 
-A new Flutter project.
+## Backend URL configuration
 
-## Getting Started
+Development defaults are built in:
 
-This project is a starting point for a Flutter application.
+- Android emulator: `http://10.0.2.2:8000`
+- Other platforms (desktop/web/simulator): `http://127.0.0.1:8000`
 
-A few resources to get you started if this is your first Flutter project:
+Override them with a Dart define:
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+```powershell
+flutter run --dart-define=API_BASE_URL=http://192.168.1.20:8000
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Release builds **require** an HTTPS URL and fail fast at startup:
+
+```powershell
+flutter build apk --release --dart-define=API_BASE_URL=https://api.example.com
+```
+
+Cleartext/local-network access is enabled only in debug platform manifests. No
+ATS exception or Android cleartext flag is present in release configuration.
+
+## Authentication storage
+
+Access and refresh tokens are stored in platform-secure storage. Legacy
+SharedPreferences auth values are migrated once and removed. Sign-out performs
+a best-effort backend logout, then clears both tokens locally.
+
+## Tests
+
+```powershell
+flutter pub get
+flutter analyze
+flutter test
+```

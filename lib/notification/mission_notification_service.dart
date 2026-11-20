@@ -4,62 +4,6 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'mission_notification_preferences.dart';
 import 'notification_catalog.dart';
 
-/// Contract for the server-side mission push pipeline.
-///
-/// The current project has no backend yet, so the real "mission appeared while
-/// the app is closed" path cannot be completed. The client side exposes this
-/// interface so the server integration (Firebase Cloud Messaging + an API that
-/// decides which drivers to notify) can be plugged in later without touching
-/// the UI.
-abstract class MissionPushBackend {
-  /// Registers this device token for a driver so the server can target them.
-  Future<void> registerDeviceToken({
-    required String deviceToken,
-    required String driverId,
-  });
-
-  /// Pushes the driver's notification preferences to the server so the
-  /// server-side matching uses the same filters.
-  Future<void> syncPreferences(MissionNotificationPreferences preferences);
-
-  /// Asks the server to deliver a real push notification to [driverId]
-  /// (used by the "Test notification" button when a backend is available).
-  Future<void> sendTestPush({required String driverId});
-}
-
-class UnimplementedMissionPushBackend implements MissionPushBackend {
-  const UnimplementedMissionPushBackend();
-
-  @override
-  Future<void> registerDeviceToken({
-    required String deviceToken,
-    required String driverId,
-  }) async {
-    throw UnsupportedError(
-      'Remote push notifications are not wired yet. A backend exposing '
-      'registerDeviceToken() (e.g. Firebase Cloud Messaging) is required.',
-    );
-  }
-
-  @override
-  Future<void> syncPreferences(
-    MissionNotificationPreferences preferences,
-  ) async {
-    throw UnsupportedError(
-      'Remote push notifications are not wired yet. A backend exposing '
-      'syncPreferences() is required to apply these filters server-side.',
-    );
-  }
-
-  @override
-  Future<void> sendTestPush({required String driverId}) async {
-    throw UnsupportedError(
-      'Remote test push is not available yet. Send FCM test messages from the '
-      'Firebase console instead.',
-    );
-  }
-}
-
 /// Represents a single mission that could trigger a notification.
 class MissionCandidate {
   /// Free-form region text (mission departure area) e.g. "Algiers".
@@ -102,16 +46,12 @@ enum NotificationFilter {
 ///  * Decide, given a mission and the driver preferences, whether it should
 ///    trigger a notification (`shouldNotify` / `blockingFilter`).
 ///
-/// REAL push notifications while the app is killed REQUIRE a backend:
-/// see [MissionPushBackend] and the README notes below. This service mirrors
-/// the checks the backend must also perform, and exposes them here so the app
-/// behaves consistently when it is running.
+/// Real push delivery while the app is killed is intentionally NOT exposed in
+/// the UI until a server-side pipeline exists. This service only handles local
+/// notifications and the client-side filter evaluation that is already real.
 class MissionNotificationService {
   MissionNotificationService._();
   static final instance = MissionNotificationService._();
-
-  /// Server integration. Swap with a real implementation once a backend exists.
-  final MissionPushBackend backend = const UnimplementedMissionPushBackend();
 
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();

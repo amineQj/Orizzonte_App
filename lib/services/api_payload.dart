@@ -10,8 +10,24 @@ class ApiPayload {
   static const sizes = {'small', 'medium', 'big'};
   static const vehicleClasses = {'standard', 'van', 'truck'};
 
+  /// Known order-flow labels are mapped explicitly first; only genuinely
+  /// unknown labels fall through to the conservative heuristic below.
+  static const Map<String, String> _knownTruckTypes = <String, String>{
+    'harbina-small': 'small',
+    'harbina-large': 'medium',
+    'fourgon-short': 'small',
+    'fourgon-medium': 'medium',
+    'fourgon-long': 'large',
+    'camion-small': 'medium',
+    'camion-large': 'large',
+    'commercial': 'small',
+    'benne': 'large',
+  };
+
   static String truckType(String raw) {
-    final v = raw.toLowerCase();
+    final v = raw.toLowerCase().trim();
+    final exact = _knownTruckTypes[v];
+    if (exact != null) return exact;
     if (v.contains('extra') || v.contains('xl') || v.contains('20t')) {
       return 'extra_large';
     }

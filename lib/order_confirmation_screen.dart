@@ -180,6 +180,11 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
   }
 
   Future<void> _confirmOrder() async {
+    if (_estimate == null || (widget.orderData.quoteId?.isEmpty ?? true)) {
+      _showError(_t('Get an estimate before confirming.',
+          'احصل على تقدير قبل التأكيد.', 'Obtenez une estimation avant de confirmer.'));
+      return;
+    }
     setState(() => _submitting = true);
     try {
       final mission = await _api.confirmMission(
@@ -554,13 +559,17 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
   }
 
   Widget _buildConfirmButton() {
+    // A quote must have been issued before the order can be confirmed; the
+    // backend rejects confirmations without a valid quote_id (M7).
+    final canConfirm = !_submitting && _estimate != null &&
+        (widget.orderData.quoteId?.isNotEmpty ?? false);
     return GestureDetector(
-      onTap: _submitting ? null : _confirmOrder,
+      onTap: canConfirm ? _confirmOrder : null,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 17),
         decoration: BoxDecoration(
-          color: _submitting ? const Color(0xFFCCCCCC) : const Color(0xFFF5A524),
+          color: canConfirm ? const Color(0xFFF5A524) : const Color(0xFFCCCCCC),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [BoxShadow(color: const Color(0xFFF5A524).withValues(alpha: 0.35), blurRadius: 20, offset: const Offset(0, 4))],
         ),
